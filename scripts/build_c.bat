@@ -22,5 +22,13 @@ cl /nologo /W4 /WX /Od /Zi /Iinclude core\c\protocol.c tests\capture_writer.c /F
 if errorlevel 1 exit /b 1
 cl /nologo /W4 /WX /Od /Zi /Iinclude /Ivendor core\c\protocol.c core\c\harness.c core\c\proxy.c core\c\quality.c core\c\differential.c core\c\media.c core\c\reference.c core\c\harness_main.c /Fe:build\c\wormhole-harness.exe /link ws2_32.lib
 if errorlevel 1 exit /b 1
+cl /nologo /W4 /WX /Od /Zi /Iinclude core\c\protocol_v2.c tests\test_protocol_v2.c /Fe:build\c\test_protocol_v2.exe
+if errorlevel 1 exit /b 1
+cl /nologo /W4 /WX /Od /Zi /Iinclude core\c\protocol_v2.c tests\test_v2_negotiation.c /Fe:build\c\test_v2_negotiation.exe /link ws2_32.lib
+if errorlevel 1 exit /b 1
 build\c\test_protocol.exe
+if errorlevel 1 exit /b 1
+build\c\test_protocol_v2.exe
+if errorlevel 1 exit /b 1
+build\c\test_v2_negotiation.exe
 exit /b %errorlevel%

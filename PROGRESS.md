@@ -53,6 +53,25 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — Wormhole plugin foundation and protocol v2 (exp_013)
+
+- Honest status: the Wormhole plugin did **not** exist before this work; only
+  recon/harness/MCP did. Added `plugin/src/plugin.c`, which registers
+  `wormhole-source` and `wormhole-output`, and `scripts/build_plugin.bat`.
+- Built `wormhole.dll` against OBS 33.0.0 headers with an import library
+  generated from `obs.dll` (`scripts/make_obs_import_lib.ps1`, 1,781 exports).
+  OBS log after loading: `[wormhole] version 0.1.0`, `wormhole.dll` listed as
+  loaded. Plugin load path verified.
+- Added `docs/WORMHOLE_V2.md`, `include/wormhole/protocol_v2.h`,
+  `core/c/protocol_v2.c` and two test programs. v2 has versioned framing,
+  total length, sequence numbers and nanosecond timestamps; HELLO/ACK
+  negotiation, named/clocked stream descriptors for multiple audio tracks,
+  and video/audio frames. Both unit tests and a real TCP negotiation test pass
+  (3 descriptors, 3 audio frames, one 1920x1080 video frame).
+- **Not yet complete**: the plugin's source/output callbacks are stubs — no
+  real media path, settings UI, JPEG conversion or full compatibility mode.
+  See [exp_013/FINDINGS.md](exp_013/FINDINGS.md).
+
 ### 2026-11-22 — Real 60-second 1080p60 NVENC recording accepted (exp_012)
 
 - Configured the streaming PC for Advanced recording: `obs_nvenc_h264_tex`,
