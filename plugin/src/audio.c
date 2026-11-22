@@ -240,7 +240,8 @@ static void *wh_audio_out_create(obs_data_t *settings, obs_source_t *source)
     ctx->listener = WH_INVALID_SOCKET;
     ctx->client = WH_INVALID_SOCKET;
     wh_mutex_init(&ctx->mutex);
-    wh_audio_out_start(ctx, settings);
+    if (obs_data_get_bool(settings, "connected"))
+        wh_audio_out_start(ctx, settings);
     return ctx;
 }
 
@@ -258,7 +259,11 @@ static void wh_audio_out_update(void *data, obs_data_t *settings)
 {
     wh_audio_out_t *ctx = data;
     wh_audio_out_stop(ctx);
-    wh_audio_out_start(ctx, settings);
+    if (obs_data_get_bool(settings, "connected"))
+        wh_audio_out_start(ctx, settings);
+    else
+        blog(LOG_INFO, "[wormhole] audio channel '%s' disconnected",
+             obs_data_get_string(settings, "target"));
 }
 
 static struct obs_source_info wh_audio_out_info = {
@@ -347,7 +352,7 @@ static obs_properties_t *wh_audio_in_properties(void *data)
     return props;
 }
 
-static WH_THREAD_API wh_audio_in_thread(WH_THREAD_ARG arg)
+static WH_THREAD_API wh_audio_in_reader(WH_THREAD_ARG arg)
 {
     wh_audio_in_t *ctx = arg;
     size_t len = 0;
@@ -408,6 +413,30 @@ static WH_THREAD_API wh_audio_in_thread(WH_THREAD_ARG arg)
     return WH_THREAD_RET;
 }
 
+/* Reconnect loop: settings changes or link loss re-open the connection. */
+static WH_THREAD_API wh_audio_in_thread(WH_THREAD_ARG arg)
+{
+    wh_audio_in_t *ctx = arg;
+    while (ctx->running) {
+        wh_audio_in_reader(arg);
+        if (!ctx->running)
+            break;
+        wh_sleep_ms(1000);
+    }
+    return WH_THREAD_RET;
+}
+
+static void wh_audio_in_update(void *data, obs_data_t *settings)
+{
+    wh_audio_in_t *ctx = data;
+    (void)settings;
+    if (!ctx)
+        return;
+    wh_net_close(ctx->sock);
+    ctx->sock = WH_INVALID_SOCKET;
+    blog(LOG_INFO, "[wormhole] audio input reconnecting");
+}
+
 static void *wh_audio_in_create(obs_data_t *settings, obs_source_t *source)
 {
     wh_audio_in_t *ctx = bzalloc(sizeof(*ctx));
@@ -439,6 +468,7 @@ static struct obs_source_info wh_audio_in_info = {
     .destroy = wh_audio_in_destroy,
     .get_defaults = wh_audio_in_defaults,
     .get_properties = wh_audio_in_properties,
+    .update = wh_audio_in_update,
 };
 
 void wh_register_audio_sources(void)
