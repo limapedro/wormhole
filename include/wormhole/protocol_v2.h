@@ -50,6 +50,7 @@ typedef struct {
     wh2_header_t header;
     uint16_t accepted_version;
     uint32_t capabilities;
+    char sender_name[128];
 } wh2_hello_ack_t;
 
 typedef struct {
@@ -103,7 +104,8 @@ size_t wh2_build_hello(uint8_t *out, size_t cap, uint32_t sequence,
                        uint32_t width, uint32_t height,
                        uint32_t fps_num, uint32_t fps_den);
 size_t wh2_build_hello_ack(uint8_t *out, size_t cap, uint32_t sequence,
-                           uint64_t timestamp_ns, uint32_t capabilities);
+                           uint64_t timestamp_ns, uint32_t capabilities,
+                           const char *sender_name);
 size_t wh2_build_stream_desc(uint8_t *out, size_t cap, uint32_t sequence,
                              uint64_t timestamp_ns, uint32_t track_id,
                              const char *name, uint32_t sample_rate,

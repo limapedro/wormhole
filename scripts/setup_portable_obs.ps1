@@ -133,7 +133,7 @@ $receiverScene | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $receiver 'co
 $whDir = Join-Path $sender 'config\obs-studio\plugin_config\wormhole'
 New-Item -ItemType Directory -Force -Path $whDir | Out-Null
 [IO.File]::WriteAllText((Join-Path $whDir 'wormhole.json'),
-    '{"enabled":true,"port":18090,"quality":90}',
+    '{"enabled":true,"name":"GAMING-PC-NEO","port":18090,"quality":90}',
     (New-Object Text.UTF8Encoding $false))
 # Receiver settings stay disabled: its source is in the scene, not an output.
 $whRxDir = Join-Path $receiver 'config\obs-studio\plugin_config\wormhole'

@@ -32,11 +32,12 @@ static void test_ack_roundtrip(void)
 {
     uint8_t buf[128];
     wh2_hello_ack_t ack;
-    size_t n = wh2_build_hello_ack(buf, sizeof(buf), 8, 99, WH2_CAP_MULTI_AUDIO);
+    size_t n = wh2_build_hello_ack(buf, sizeof(buf), 8, 99, WH2_CAP_MULTI_AUDIO, "gaming-pc");
     assert(n > WH2_HEADER_LEN);
     assert(wh2_parse_hello_ack(buf, n, &ack) == WH2_PARSE_OK);
     assert(ack.accepted_version == WH2_VERSION);
     assert(ack.capabilities == WH2_CAP_MULTI_AUDIO);
+    assert(strcmp(ack.sender_name, "gaming-pc") == 0);
     printf("ok: v2 ack round-trip\n");
 }
 
