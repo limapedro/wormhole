@@ -23,7 +23,8 @@ Read the root documents before acting: [GOAL.md](GOAL.md),
 
 - `gh auth status` — verify access.
 - `git checkout -b feat/...|fix/...|exp/NNN-...|docs/...|perf/...`
-- `cargo test`, `cargo fmt --check`, `cargo clippy -- -D warnings`
+- `cmd /c scripts\build_c.bat` (Windows / MSVC) or `sh scripts/build_c.sh` (POSIX) — builds and runs all C tests
+- `build\c\wormhole-harness.exe --config <file.toml> <command>`
 - `gh pr create`, `gh pr merge --squash`
 - Harness tools take only `--config <file.toml>` and `--help` (command shapes
   in HARNESS.md; implemented in Phase 2).

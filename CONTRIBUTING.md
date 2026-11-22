@@ -59,9 +59,9 @@ Tools and harness programs take `--config path/to.toml`; only `--config` and
   warnings in CI.
 - Every bug fix lands with a regression test.
 
-Commands are finalized as tooling lands; [HARNESS.md](HARNESS.md) lists the
-planned command shapes. Until then, run `cargo test` / `cargo fmt --check` /
-`cargo clippy` for Rust code and the harness scripts listed there.
+The project is all C. Build and test with `cmd /c scripts\build_c.bat` on
+Windows (Visual Studio / MSVC) or `sh scripts/build_c.sh` on Linux/macOS.
+Harness commands and config files are listed in [HARNESS.md](HARNESS.md).
 
 ## What must never be done
 

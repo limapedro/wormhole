@@ -14,7 +14,7 @@ revised only with evidence and a corresponding
 | OS | Windows 11 Pro, 10.0.26300, build 26300 |
 | GPU | NVIDIA GeForce GTX 1660 SUPER |
 | OBS | Studio 33.0.0, `C:\Program Files\obs-studio` |
-| Toolchain | Rust 1.99.0, CMake 4.3.3, git 2.53.0 |
+| Toolchain | Visual Studio 2026 / MSVC 14.42, CMake 4.3.3, git 2.53.0 (all-C project) |
 | Missing | Go toolchain (required to build upstream; see RISKS.md) |
 
 CI baselines on `ubuntu-latest` / `macos-latest` are recorded separately when

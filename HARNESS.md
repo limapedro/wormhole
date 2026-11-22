@@ -1,133 +1,88 @@
 # HARNESS — reverse engineering and test harness
 
 The harness makes Teleport's behavior fully observable and reproducible
-without a human in the loop. It lives in `harness/` once code lands (Phase 2).
-This document describes each component, how to run it, and what is currently
-known. Planned commands are marked **planned** until implemented.
+without a human in the loop. It is implemented **entirely in C**; the former
+Rust workspace was removed after its functionality was ported and verified
+(`exp_005`–`exp_010`). This document describes each component and how to run it.
 
 ## Layout
 
 ```
-Cargo.toml              workspace root
-crates/protocol/        wh-protocol: byte-accurate Teleport framing (Rust library)
-harness/                wormhole-harness CLI
-  src/config.rs         typed TOML config structs with explicit defaults
-  src/dissect.rs        capture -> structured messages, round-trip validation
-  src/proxy.rs          transparent TCP capture/impairment proxy
-  src/media.rs          deterministic I420 video + S16LE audio generators
-  src/synth.rs          deterministic Teleport-compatible capture fixture
-  src/replay.rs         replay capture to proxy; minimal test sink
-  src/bench.rs          dissector throughput self-benchmark (not Teleport)
-  config/               example.toml, proxy-test.toml, proxy-dissect.toml
-exp_001/                first fidelity experiment (HYPOTHESIS + FINDINGS)
+include/wormhole/protocol.h   wire-format types and functions
+include/wormhole/harness.h    typed config and command declarations
+core/c/protocol.c             bounded decode/encode of Teleport framing
+core/c/harness.c              typed TOML-subset config; check/synth/dissect
+core/c/proxy.c                TCP capture/impairment proxy (Winsock/POSIX)
+core/c/quality.c              JPEG frame decoding and image-quality metrics
+core/c/differential.c         capture comparison with JSON report
+core/c/media.c                deterministic I420 video + multi-track WAV
+core/c/reference.c            standalone Teleport-protocol reference peers
+core/c/harness_main.c         CLI: only --config and --help are flags
+tests/test_protocol.c         C unit tests
+tests/capture_writer.c        deterministic capture fixture writer
+vendor/stb/                   public-domain stb_image / stb_image_write
+scripts/build_c.bat|sh        MSVC / POSIX builds and tests
+scripts/setup_portable_obs.ps1  configure two portable OBS copies
+scripts/run_two_obs.ps1         launch pair, sample CPU, capture stream
+harness/config/*.toml         typed configuration files
+exp_001..exp_010/             hypotheses and findings (evidence)
 ```
 
-Planned for later phases: `instrumented/` (patched upstream), `mock_obs/`
-(headless libobs host), `reference/` (standalone peers), `differential/`
-(Teleport vs Wormhole comparison), and the full scenario benchmark runner.
-
-Tools take a config path, not dozens of flags: `tool --config path/to.toml`
-(plus `--help`). Only `--config` and `--help` are accepted flags; subcommands
-are positional.
+Tools take a config path, not dozens of flags: `--config path/to.toml` plus
+`--help`. Subcommands are positional.
 
 ## Components and status
 
-| Component | Status | Purpose |
+| Component | Status | Purpose / evidence |
 |---|---|---|
-| Wire-format library (`wh-protocol`) | **Implemented** | Strict bounded decode/encode of the 16-byte header, 88-byte `ImageHeader` and 16-byte `WaveHeader`; unknown types preserved; 10 unit tests |
-| Capture/impairment proxy | **Implemented (basic)** | Records **both** directions (`capture` = client→target, `capture_down` = target→client, the media direction for Teleport); injects fixed delay, deterministic drop percentage and an approximate bandwidth cap. **pcap export and high-resolution per-byte timestamps are not yet implemented** |
-| Protocol dissector | **Implemented** | Decodes a capture to JSON summaries and asserts byte-identical re-encode |
-| Synthetic media generator | **Implemented** | Deterministic I420 color bars with moving marker across the full 720p30/1080p30/1080p60/1440p60/4K30 matrix, plus 4 independent S16LE WAV tracks with distinct sync tones; validated in [exp_003](exp_003/FINDINGS.md) |
-| Capture fixture, replay and sink | **Implemented** | Produce and replay deterministic Teleport-compatible byte streams for unattended tests |
-| Image-quality analysis | **Implemented** | Decodes captured JPEG frames, reports dimensions, mean RGB, MSE and PSNR ([exp_006](exp_006/FINDINGS.md)) |
-| Two-portable-OBS monitor | **Implemented** | Scripts configure and launch two independent portable OBS instances, sample CPU/memory, capture the stream through the proxy, then dissect and score image quality |
-| Dissector self-benchmark | **Implemented** | Measures harness encode/decode throughput only — explicitly **not** a Teleport or Wormhole benchmark |
-| Instrumented upstream build | Blocked | Patched Teleport with tracing: frame timings, allocations, GC pauses, cgo calls, queue depths; kept separate from Wormhole code. See build blockers below |
-| Mock OBS host | Planned | Load/exercise a plugin without full OBS GUI in CI; fallback: headless/scripted OBS, limits documented |
-| Reference sender/receiver | **Implemented** | Standalone Rust peers (`ref-sender`, `ref-receiver`) that emit/decode real JPEG + PCM in the documented wire format; validated in [exp_002](exp_002/FINDINGS.md) |
-| Differential tester | **Stage 1 implemented** | `differential` compares two captures by message type, timestamp and payload hash, writes a JSON report and fails on mismatch ([exp_004](exp_004/FINDINGS.md)). Live-sender driving and timing/bandwidth/failure comparison remain pending |
-| Full benchmark runner | Planned | Run `PERFORMANCE_TARGETS.md` scenarios S1–S10; write CSV/JSON + summary into `exp_NNN/` |
+| Wire-format library | **Implemented** | Strict bounded decode/encode of 16-byte `Header`, 88-byte `ImageHeader`, 16-byte `WaveHeader`; unknown types preserved; unit tests |
+| Capture/impairment proxy | **Implemented** | Records both directions (`capture` = client→target, `capture_down` = target→client); delay, deterministic drops, approximate bandwidth cap; propagates close. **pcap export and high-resolution per-byte timestamps are not yet implemented** |
+| Protocol dissector | **Implemented** | Decodes capture to JSON and asserts byte-identical re-encode (`exp_007`) |
+| Synthetic media generator | **Implemented** | I420 colour bars + moving marker across 720p30/1080p30/1080p60/1440p60/4K30, four S16LE WAV tracks (`exp_010`) |
+| Standalone reference peers | **Implemented** | `ref-sender` / `ref-receiver` emit and decode real JPEG + PCM (`exp_010`) |
+| Image-quality analysis | **Implemented** | Decodes captured JPEG frames; mean RGB, MSE, PSNR (`exp_009`) |
+| Differential tester | **Stage 1 implemented** | Compares captures by type, timestamp and payload hash (`exp_004`, `exp_009`) |
+| Two-portable-OBS monitor | **Implemented** | Scripts launch two independent portable OBS copies, sample CPU/memory, capture and score the stream (`exp_006`, `exp_008`) |
+| Instrumented upstream build | Blocked | Go/mingw/libobs SDK unavailable; see build blockers below |
+| Mock OBS host | Planned | Headless libobs host for CI; portable OBS pair used instead |
+| Full S1–S10 benchmark runner | Planned | Scenario runner writing results into `exp_NNN/` |
 
-## Running (implemented commands)
-
-### All-C core and C harness (Visual Studio / MSVC on Windows)
+## Build and commands
 
 ```bat
 cmd /c scripts\build_c.bat
 build\c\wormhole-harness.exe --help
 build\c\wormhole-harness.exe --config harness/config/example.toml check
 build\c\wormhole-harness.exe --config harness/config/example.toml synth
-build\c\wormhole-harness.exe --config harness/config/obs-proxy.toml dissect
+build\c\wormhole-harness.exe --config harness/config/example.toml dissect
+build\c\wormhole-harness.exe --config harness/config/example.toml media
+build\c\wormhole-harness.exe --config harness/config/obs-proxy.toml proxy
 build\c\wormhole-harness.exe --config harness/config/obs-quality.toml quality
-build\c\wormhole-harness.exe --config exp_results/diff-c.toml differential
+build\c\wormhole-harness.exe --config harness/config/c-reference.toml ref-sender
+build\c\wormhole-harness.exe --config harness/config/c-reference.toml ref-receiver
 ```
 
-The script locates Visual Studio with `vswhere`, runs `vcvars64.bat`, compiles
-the C protocol library, tests, `capture_writer` and the C harness with
-`cl /W4 /WX`, and runs the C unit tests. `exp_007/FINDINGS.md` verifies that
-the C harness produces the same results as the Rust one on the live OBS
-capture. The C harness currently implements `check`, `synth`, `dissect` and `proxy`
-(including both-direction capture and delay/drop/bandwidth impairments);
-quality and differential are also implemented in C (`exp_009/FINDINGS.md`).
-Only media generation and the standalone reference peers remain temporarily in
-Rust. `exp_008/FINDINGS.md` verifies the C proxy against the live OBS pair.
+On Windows the script locates Visual Studio with `vswhere`, runs
+`vcvars64.bat`, and compiles with `cl /W4 /WX` (link `ws2_32.lib`). On
+Linux/macOS, `sh scripts/build_c.sh` uses `cc -std=c11 -Wall -Wextra -Werror`
+and links `libm`. CI runs both paths on all three platforms.
 
-To use the C proxy in the two-OBS workflow:
+### Two portable OBS instances
 
 ```bat
-powershell -File scripts\run_two_obs.ps1 -Harness build\c\wormhole-harness.exe
-```
-On Linux/macOS, `sh scripts/build_c.sh` uses the platform C compiler with
-`-Wall -Wextra -Werror`. CI runs both paths on all three platforms.
-`exp_005/FINDINGS.md` records the verified build and C↔Rust wire check.
-
-### Harness (temporary Rust implementation, being ported to C)
-
-```bash
-cargo test --workspace --all-targets
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-
-# Print the effective typed configuration
-cargo run -p wormhole-harness -- --config harness/config/example.toml check
-
-# Deterministic capture fixture -> dissector (round-trip assertion)
-cargo run -p wormhole-harness -- --config harness/config/example.toml synth
-cargo run -p wormhole-harness -- --config harness/config/example.toml dissect
-
-# Synthetic media
-cargo run -p wormhole-harness -- --config harness/config/example.toml media
-
-# End-to-end proxy test: sink + proxy in separate terminals, then:
-cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml sink
-cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml proxy
-cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml replay
-cargo run -p wormhole-harness -- --config harness/config/proxy-dissect.toml dissect
-
-# Standalone reference peers through the proxy
-cargo run -p wormhole-harness -- --config harness/config/reference-test.toml ref-receiver
-cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml proxy
-cargo run -p wormhole-harness -- --config harness/config/reference-test.toml ref-sender
-cargo run -p wormhole-harness -- --config harness/config/reference-test.toml dissect
-
-# Differential capture comparison (stage 1)
-cargo run -p wormhole-harness -- --config <config-with-differential-section> differential
-
-# Two portable OBS instances through the proxy + CPU sampling
-powershell -File scripts/setup_portable_obs.ps1
-powershell -File scripts/run_two_obs.ps1 -WindowSeconds 6
-cargo run -p wormhole-harness -- --config harness/config/obs-proxy.toml dissect
-cargo run -p wormhole-harness -- --config harness/config/obs-quality.toml quality
-
-# Harness self-benchmark (not a product benchmark)
-cargo run -p wormhole-harness -- --config harness/config/example.toml bench
+powershell -File scripts\setup_portable_obs.ps1
+powershell -File scripts\run_two_obs.ps1 -WindowSeconds 6 -Harness build\c\wormhole-harness.exe
+build\c\wormhole-harness.exe --config harness/config/obs-proxy.toml dissect
+build\c\wormhole-harness.exe --config harness/config/obs-quality.toml quality
 ```
 
-Fidelity evidence for these commands is in [exp_001](exp_001/FINDINGS.md).
+The setup script creates two self-contained portable OBS copies under the
+git-ignored `third_party/obs-portable/` and installs Teleport 0.8.0 into each.
+The run script samples per-process CPU and working set, captures the stream
+through the proxy, and writes `exp_results/two-obs-cpu.csv`.
 
 Raw captures over a few MB are **not committed**; they are regenerated by
-scripts or attached to releases. Only structured results and findings are
-committed.
+scripts. Only structured results and findings are committed.
 
 ## Building original Teleport on Windows (Phase 1 attempt — blocked)
 
@@ -150,37 +105,11 @@ committed.
 
 Upstream does **not** build natively on Windows; its CI uses the
 `fzwoch/klumpatsch` Docker image on `ubuntu-latest` with a mingw cross-compiler
-(`.github/workflows/build.yaml:7-18`). Reproducing that locally requires:
-
-| Requirement | Local state | Evidence |
-|---|---|---|
-| Go toolchain | **not installed** (`go` not on PATH) | `Get-Command go` failed, 2026-11-22 |
-| C compiler (mingw/clang/MSVC) | **none installed** — `clang`, `gcc`, `cl`, `x86_64-w64-mingw32-gcc` all absent | `Get-Command` probe, 2026-11-22 |
-| libobs headers + `obs.dll`/`obs-frontend-api.dll` | OBS Studio 33.0.0 installed, but no SDK headers in the install tree | `Get-ChildItem 'C:\Program Files\obs-studio' -Recurse -Filter *.h` returned nothing |
-| libjpeg-turbo 3.2.0 built with SIMD | not present | — |
-
-Installing a system-wide toolchain is outside the allowed workspace scope
-(see [AGENTS.md](AGENTS.md) hard rules), so the source build remains blocked
-and is tracked as issue #6 / RISKS.md R13. The upstream CI recipe is the
-reference if a self-contained portable toolchain is later placed under
-git-ignored `third_party/`.
-
-### Upstream CI build recipe (reference, not executed locally)
-
-```sh
-# from .github/workflows/build.yaml, Windows x86_64 job
-cmake -B /tmp/turbojpeg -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DREQUIRE_SIMD=TRUE -DENABLE_SHARED=FALSE -DWITH_TOOLS=FALSE \
-  -DWITH_TESTS=FALSE -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
-  -DCMAKE_TOOLCHAIN_FILE=/cmake/mingw-x86_64.cmake /tmp/libjpeg
-cmake --build /tmp/turbojpeg
-# OBS 31.1.0 headers + DLLs unpacked into /tmp/obs
-CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-clang \
-  CGO_CFLAGS="-O2 -I/tmp/obs/libobs -I/tmp/obs/frontend/api -I/tmp/libjpeg/src -I/tmp/turbojpeg -I/tmp" \
-  CGO_LDFLAGS="-L/tmp/turbojpeg -lturbojpeg -L/tmp/obs -lobs -lobs-frontend-api" \
-  go build -buildvcs=false -ldflags="-X main.version=0.8.0" \
-  -buildmode=c-shared -o obs-teleport.dll
-```
+(`.github/workflows/build.yaml:7-18`). Reproducing that locally requires a Go
+toolchain, a mingw C compiler, libobs headers and a SIMD libjpeg-turbo build;
+none were available at recon time. Installing a system-wide toolchain is
+outside the allowed workspace scope (see [AGENTS.md](AGENTS.md) hard rules),
+so the source build remains blocked and is tracked as issue #6 / RISKS.md R13.
 
 ### Installer incident (honest record)
 
@@ -189,13 +118,9 @@ Running the release NSIS installer with
 honor `/D`**: the upstream `.nsi` hardcodes `$INSTDIR` to
 `$COMMONPROGRAMDATA\obs-studio\plugins\obs-teleport` in `.onInit`
 (`build.yaml:107-109`). It therefore wrote `obs-teleport.dll` and
-`uninstall.exe` to the pre-existing global plugin directory
-(`C:\ProgramData\obs-studio\plugins\obs-teleport`, created 2026-08-19). The
-DLL hash matches the 0.8.0 release. No user OBS profile or other project was
-modified. The install was left in place rather than uninstalled, because a
-Teleport installation predated this work and removing it would destroy the
-user's existing setup. A dedicated test profile must be configured before any
-behavioral experiments.
+`uninstall.exe` to the pre-existing global plugin directory. No user OBS
+profile or other project was modified; the install was left intact because a
+Teleport installation predated this work.
 
 ### Fallback used for recon
 
@@ -206,9 +131,9 @@ instrumented build (Phase 2, issue #15).
 
 ## Mock OBS host limits
 
-Status: **unknown — to be determined in Phase 2.** If a full libobs mock is
-not feasible, headless/scripted OBS will be used and the untestable areas
-(e.g. GUI settings behavior) documented here explicitly.
+Status: **planned**. In the meantime the two-portable-OBS monitor provides
+real OBS 33.0.0 behavior on Windows. Anything that cannot be tested that way
+(e.g. headless CI on Linux/macOS) will be documented here explicitly.
 
 ## Evidence conventions
 
@@ -220,7 +145,6 @@ not feasible, headless/scripted OBS will be used and the untestable areas
 
 ## Open questions
 
-- Which capture backend on Windows is lowest-overhead (raw socket proxy vs
-  pcap/Npcap)? Decide with an experiment.
+- Which capture backend is lowest-overhead (raw sockets vs pcap/Npcap)?
 - Can latency be measured meaningfully in CI, or only on the dev machine?
 - Does upstream expose enough of libobs to run under a lightweight mock?

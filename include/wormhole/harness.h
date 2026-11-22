@@ -33,6 +33,9 @@ typedef struct {
     unsigned media_height;
     unsigned media_frames;
     unsigned media_fps;
+    unsigned media_sample_rate;
+    unsigned media_audio_seconds;
+    unsigned media_tracks;
 
     char quality_output[WH_MAX_PATH];
     int expected_r;
@@ -57,5 +60,8 @@ int wh_cmd_synth(const wh_config_t *config);
 int wh_cmd_proxy(const wh_config_t *config);
 int wh_cmd_quality(const wh_config_t *config);
 int wh_cmd_differential(const wh_config_t *config);
+int wh_cmd_media(const wh_config_t *config);
+int wh_cmd_ref_sender(const wh_config_t *config);
+int wh_cmd_ref_receiver(const wh_config_t *config);
 
 #endif /* WORMHOLE_HARNESS_H */

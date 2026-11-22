@@ -6,7 +6,7 @@ and mirrored in [RISKS.md](RISKS.md).
 ## Common requirements
 
 - libobs headers and OBS Studio SDK for the installed OBS version.
-- Rust toolchain (stable) and CMake; C compiler for the thin libobs layer.
+- A C compiler (MSVC via Visual Studio on Windows, clang on macOS, gcc on Linux) and CMake; the project is all C.
 - Typed TOML config; only `--config` / `--help` flags in tools.
 - Core code stays portable; platform code behind small interfaces.
 
@@ -18,7 +18,7 @@ and mirrored in [RISKS.md](RISKS.md).
 | OBS version | Studio 33.0.0, installed at `C:\Program Files\obs-studio` |
 | OBS plugin dir (typical) | `%APPDATA%\obs-studio\plugins` and `C:\Program Files\obs-studio\obs-plugins\64bit` |
 | Test profile | Dedicated OBS profile only; never the user's normal profile |
-| Toolchain | Rust 1.99.0, CMake 4.3.3; Go **not installed** (needed for upstream recon) |
+| Toolchain | Visual Studio 2026 / MSVC 14.42, CMake 4.3.3; Go **not installed** (needed for upstream recon) |
 | GPU | NVIDIA GTX 1660 SUPER |
 | Capture backend | To decide in Phase 2 (raw socket proxy vs Npcap) |
 | Installer | Planned: Windows installer, CI-built with checksums |
@@ -58,6 +58,7 @@ artifact and say it came from a runner.
 ## Platform isolation rule
 
 Per the contract, platform-specific audio/video code stays behind small
-interfaces so the Rust core is portable by construction. Any new platform API
+interfaces so the C core is portable by construction. Any new platform API
 call must be introduced behind such an interface with a documented portability
-note here.
+note here. The C harness uses `#ifdef _WIN32` / POSIX shims for sockets and
+sleeps in `core/c/proxy.c` and `core/c/reference.c`.
