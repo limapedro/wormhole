@@ -5,7 +5,8 @@
 # --- Rust -------------------------------------------------------------------
 /target/
 **/target/
-Cargo.lock
+# Cargo.lock is committed: the workspace ships a binary (the harness) and
+# reproducible builds matter more than library-style flexibility.
 *.rlib
 *.rmeta
 *.dylib
