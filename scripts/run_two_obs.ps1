@@ -4,14 +4,14 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 param(
     [double]$WindowSeconds = 6,
-    [string]$Config = 'harness/config/obs-proxy.toml'
+    [string]$Config = 'harness/config/obs-proxy.toml',
+    [string]$Harness = 'target\debug\wormhole-harness.exe'
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-$harness = 'target\debug\wormhole-harness.exe'
 $rxExe = 'third_party\obs-portable\receiver\bin\64bit\obs64.exe'
 $txExe = 'third_party\obs-portable\sender\bin\64bit\obs64.exe'
 $rxCwd = 'third_party\obs-portable\receiver\bin\64bit'
@@ -22,7 +22,7 @@ Remove-Item (Join-Path $results 'obs-capture.bin'), (Join-Path $results 'obs-ups
 
 $proxy = $null; $rx = $null; $tx = $null
 try {
-    $proxy = Start-Process -FilePath $harness -ArgumentList '--config', $Config, 'proxy' -PassThru `
+    $proxy = Start-Process -FilePath $Harness -ArgumentList '--config', $Config, 'proxy' -PassThru `
         -WindowStyle Hidden -RedirectStandardOutput "$results\obs-proxy.out" -RedirectStandardError "$results\obs-proxy.err"
     Start-Sleep -Milliseconds 800
     $rx = Start-Process -FilePath $rxExe -ArgumentList '--portable','--multi','--profile','Wormhole','--collection','WormholeReceiver','--scene','Scene' `

@@ -45,5 +45,6 @@ int wh_config_load(wh_config_t *config, const char *path);
 int wh_cmd_check(const wh_config_t *config);
 int wh_cmd_dissect(const wh_config_t *config);
 int wh_cmd_synth(const wh_config_t *config);
+int wh_cmd_proxy(const wh_config_t *config);
 
 #endif /* WORMHOLE_HARNESS_H */

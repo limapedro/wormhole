@@ -8,5 +8,5 @@ mkdir -p build/c
 "$CC" -std=c11 -Wall -Wextra -Werror -O2 -Iinclude \
     core/c/protocol.c tests/capture_writer.c -o build/c/capture_writer
 "$CC" -std=c11 -Wall -Wextra -Werror -O2 -Iinclude \
-    core/c/protocol.c core/c/harness.c core/c/harness_main.c -o build/c/wormhole-harness
+    core/c/protocol.c core/c/harness.c core/c/proxy.c core/c/harness_main.c -o build/c/wormhole-harness
 build/c/test_protocol
