@@ -53,6 +53,20 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — All-C harness: check/synth/dissect (Phase 2)
+
+- Added `include/wormhole/harness.h`, `core/c/harness.c` (typed TOML-subset
+  config parser and commands) and `core/c/harness_main.c` (only `--config` and
+  `--help`). MSVC build script now compiles the C harness too.
+- [exp_007/FINDINGS.md](exp_007/FINDINGS.md) (hypothesis first): MSVC `/W4 /WX`
+  build clean, C tests pass; C dissector on the live OBS capture reported
+  **768 packets / 8,389,332 bytes / byte-identical**, matching the Rust
+  dissector exactly; C synth→dissect produced 120 packets / 9,600 bytes.
+  A wrong cumulative-length assumption in the first implementation was found
+  and fixed (recorded).
+- Remaining Rust-only harness commands (proxy, quality, differential, media,
+  reference peers) are explicitly temporary pending C ports.
+
 ### 2026-11-22 — Two portable OBS instances monitored (Phase 2)
 
 - Built two self-contained portable OBS copies under git-ignored

@@ -50,14 +50,22 @@ are positional.
 
 ## Running (implemented commands)
 
-### All-C core (Visual Studio / MSVC on Windows)
+### All-C core and C harness (Visual Studio / MSVC on Windows)
 
 ```bat
 cmd /c scripts\build_c.bat
+build\c\wormhole-harness.exe --help
+build\c\wormhole-harness.exe --config harness/config/example.toml check
+build\c\wormhole-harness.exe --config harness/config/example.toml synth
+build\c\wormhole-harness.exe --config harness/config/obs-proxy.toml dissect
 ```
 
 The script locates Visual Studio with `vswhere`, runs `vcvars64.bat`, compiles
-with `cl /W4 /WX`, runs the C unit tests and builds `capture_writer.exe`.
+the C protocol library, tests, `capture_writer` and the C harness with
+`cl /W4 /WX`, and runs the C unit tests. `exp_007/FINDINGS.md` verifies that
+the C harness produces the same results as the Rust one on the live OBS
+capture. The C harness currently implements `check`, `synth` and `dissect`;
+proxy, quality, differential and media generation remain temporarily in Rust.
 On Linux/macOS, `sh scripts/build_c.sh` uses the platform C compiler with
 `-Wall -Wextra -Werror`. CI runs both paths on all three platforms.
 `exp_005/FINDINGS.md` records the verified build and C↔Rust wire check.
