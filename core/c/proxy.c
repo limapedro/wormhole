@@ -29,6 +29,7 @@ static void wh_sleep_us(unsigned long us) { Sleep((DWORD)((us + 999UL) / 1000UL)
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <time.h>
