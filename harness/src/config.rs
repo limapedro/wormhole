@@ -77,8 +77,11 @@ pub struct ProxyConfig {
     pub listen: String,
     /// Address of the real receiver/sender to forward to.
     pub target: String,
-    /// File receiving the sender-to-receiver byte stream.
+    /// File receiving the client-to-target byte stream.
     pub capture: PathBuf,
+    /// File receiving the target-to-client byte stream (the media direction
+    /// when a receiver is the TCP client, as with Teleport).
+    pub capture_down: PathBuf,
     /// Fixed delay applied to each forwarded chunk, in milliseconds.
     pub delay_ms: u64,
     /// Percentage of forwarded chunks dropped (0-100).
@@ -95,6 +98,7 @@ impl Default for ProxyConfig {
             listen: "127.0.0.1:18080".to_string(),
             target: "127.0.0.1:18081".to_string(),
             capture: PathBuf::from("exp_results/capture.bin"),
+            capture_down: PathBuf::from("exp_results/capture-down.bin"),
             delay_ms: 0,
             drop_percent: 0,
             bandwidth_bytes_per_sec: 0,
@@ -129,6 +133,10 @@ pub struct MediaConfig {
     pub profiles: bool,
     /// Frames per profile when `profiles` is enabled.
     pub profile_frames: u32,
+    /// Optional expected RGB colour for PSNR comparison.
+    pub expected_color: Option<[u8; 3]>,
+    /// Image-quality report output path.
+    pub quality_output: PathBuf,
 }
 
 impl Default for MediaConfig {
@@ -145,6 +153,8 @@ impl Default for MediaConfig {
             tracks: 4,
             profiles: true,
             profile_frames: 3,
+            expected_color: None,
+            quality_output: PathBuf::from("exp_results/quality.json"),
         }
     }
 }
