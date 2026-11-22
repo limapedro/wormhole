@@ -2,14 +2,14 @@
 
 Phased plan. Each phase maps to a GitHub milestone. Issue links are filled in
 once the milestones and issues are created from this document after the docs
-PR merges (see "Issue map" per phase; `TBD` entries must be replaced).
+PR merges (each phase below has an "Issue map" with links to its GitHub issues).
 
 Work follows the loop in the standing contract: read
 [PROGRESS.md](PROGRESS.md), pick the highest-priority open issue, experiment
 first when the task involves measurement or design, work on a short-lived
 branch, record findings, update docs, open a PR, merge.
 
-## Phase 0 — Setup (milestone `0 — Setup`)
+## Phase 0 — Setup (milestone `0 - Setup`)
 
 **Goal:** repository, documentation, issues, CI skeleton. No plugin code.
 
@@ -25,9 +25,9 @@ item has an issue; no code merged before the docs PR.
 
 **Dependencies:** none.
 
-**Issue map:** setup tasks tracked as milestone `0 — Setup`, issues TBD.
+**Issue map (milestone `0 - Setup`):** [#2](https://github.com/limapedro/wormhole/issues/2) (repo created, closed), [#3](https://github.com/limapedro/wormhole/issues/3) (docs PR, closed), [#4](https://github.com/limapedro/wormhole/issues/4) (issue setup, closed), [#5](https://github.com/limapedro/wormhole/issues/5) (CI skeleton).
 
-## Phase 1 — Reconnaissance (milestone `1 — Recon`)
+## Phase 1 — Reconnaissance (milestone `1 - Recon`)
 
 **Goal:** understand original Teleport completely, with local evidence.
 
@@ -51,10 +51,9 @@ unverified architecture hypotheses listed in `PROTOCOL.md`.
 **Dependencies:** Phase 0. **Blockers to watch:** Go toolchain not installed
 on the dev machine (see [RISKS.md](RISKS.md)).
 
-**Issue map:** issues TBD (labels `research`, `docs`, `harness`,
-`platform:windows`).
+**Issue map (milestone `1 - Recon`):** [#6](https://github.com/limapedro/wormhole/issues/6) (Go toolchain), [#7](https://github.com/limapedro/wormhole/issues/7) (clone + pin hash), [#8](https://github.com/limapedro/wormhole/issues/8) (license check), [#9](https://github.com/limapedro/wormhole/issues/9) (codebase inventory), [#10](https://github.com/limapedro/wormhole/issues/10) (Windows build), [#11](https://github.com/limapedro/wormhole/issues/11) (exp_000), [#12](https://github.com/limapedro/wormhole/issues/12) (hypotheses).
 
-## Phase 2 — Harness (milestone `2 — Harness`)
+## Phase 2 — Harness (milestone `2 - Harness`)
 
 **Goal:** make Teleport fully observable and reproducible without a human.
 
@@ -80,9 +79,9 @@ Components (details in [HARNESS.md](HARNESS.md)):
 answered with evidence in [PROTOCOL.md](PROTOCOL.md); dissector round-trips
 byte-identically; harness runs unattended in CI.
 
-**Dependencies:** Phase 1. **Issue map:** issues TBD (label `harness`).
+**Dependencies:** Phase 1. **Issue map (milestone `2 - Harness`):** [#13](https://github.com/limapedro/wormhole/issues/13) through [#24](https://github.com/limapedro/wormhole/issues/24) — proxy, dissector, instrumented build, mock OBS host, video/audio generators, reference peers, replay, differential tester, benchmark runner, protocol questions and Windows capture backend decision.
 
-## Phase 3 — Architecture (milestone `3 — Architecture`)
+## Phase 3 — Architecture (milestone `3 - Architecture`)
 
 **Goal:** lock architecture decisions with evidence; draft protocol v2.
 
@@ -97,10 +96,9 @@ byte-identically; harness runs unattended in CI.
 **Acceptance criteria:** no architecture decision lacks evidence; v2 spec
 covers capability negotiation and multi-audio descriptors.
 
-**Dependencies:** Phase 2. **Issue map:** issues TBD (labels `protocol`,
-`perf`, `multi-audio`).
+**Dependencies:** Phase 2. **Issue map (milestone `3 - Architecture`):** [#25](https://github.com/limapedro/wormhole/issues/25) (C+Rust decision), [#26](https://github.com/limapedro/wormhole/issues/26) (buffers), [#27](https://github.com/limapedro/wormhole/issues/27) (SIMD JPEG), [#28](https://github.com/limapedro/wormhole/issues/28) (I/O model), [#29](https://github.com/limapedro/wormhole/issues/29) (threading rule), [#30](https://github.com/limapedro/wormhole/issues/30) (v2 spec).
 
-## Phase 4 — Parity, Windows first (milestone `4 — Parity`)
+## Phase 4 — Parity, Windows first (milestone `4 - Parity`)
 
 **Goal:** full Teleport feature parity in compatibility mode on Windows.
 
@@ -114,10 +112,9 @@ covers capability negotiation and multi-audio descriptors.
 **Acceptance criteria:** all P01–P24 rows `verified`; differential tester
 green; CI green on Windows.
 
-**Dependencies:** Phases 1–3. **Issue map:** issues TBD (labels `protocol`,
-`video`, `audio`, `platform:windows`).
+**Dependencies:** Phases 1–3. **Issue map (milestone `4 - Parity`):** [#31](https://github.com/limapedro/wormhole/issues/31) (sender), [#32](https://github.com/limapedro/wormhole/issues/32) (receiver), [#33](https://github.com/limapedro/wormhole/issues/33) (discovery), [#34](https://github.com/limapedro/wormhole/issues/34) (source/filter/output), [#35](https://github.com/limapedro/wormhole/issues/35) (settings UI), [#36](https://github.com/limapedro/wormhole/issues/36) (checklist + differential tests).
 
-## Phase 5 — Efficiency (milestone `5 — Efficiency`)
+## Phase 5 — Efficiency (milestone `5 - Efficiency`)
 
 **Goal:** profile-driven optimization until every target in
 [PERFORMANCE_TARGETS.md](PERFORMANCE_TARGETS.md) is met.
@@ -130,9 +127,9 @@ green; CI green on Windows.
 **Acceptance criteria:** targets met, each claim linked to a committed
 benchmark result; no OBS render-thread stalls attributable to the plugin.
 
-**Dependencies:** Phase 4. **Issue map:** issues TBD (label `perf`).
+**Dependencies:** Phase 4. **Issue map (milestone `5 - Efficiency`):** [#37](https://github.com/limapedro/wormhole/issues/37) (profile), [#38](https://github.com/limapedro/wormhole/issues/38) (allocations), [#39](https://github.com/limapedro/wormhole/issues/39) (codec), [#40](https://github.com/limapedro/wormhole/issues/40) (framing/socket), [#41](https://github.com/limapedro/wormhole/issues/41) (verify targets).
 
-## Phase 6 — Multi-audio (milestone `6 — Multi-audio`)
+## Phase 6 — Multi-audio (milestone `6 - Multi-audio`)
 
 **Goal:** the headline feature, per section 9 of the contract.
 
@@ -152,10 +149,9 @@ benchmark result; no OBS render-thread stalls attributable to the plugin.
 **Acceptance criteria:** cross-track skew under target; compatibility peer
 still receives track 1; all tests green.
 
-**Dependencies:** Phase 4 (and ideally Phase 5). **Issue map:** issues TBD
-(label `multi-audio`, `audio`, `protocol`).
+**Dependencies:** Phase 4 (and ideally Phase 5). **Issue map (milestone `6 - Multi-audio`):** [#42](https://github.com/limapedro/wormhole/issues/42) (OBS mapping), [#43](https://github.com/limapedro/wormhole/issues/43) (sender), [#44](https://github.com/limapedro/wormhole/issues/44) (receiver), [#45](https://github.com/limapedro/wormhole/issues/45) (protocol v2 descriptors), [#46](https://github.com/limapedro/wormhole/issues/46) (sync/robustness), [#47](https://github.com/limapedro/wormhole/issues/47) (tests).
 
-## Phase 7 — Linux and macOS (milestone `7 — Platforms`)
+## Phase 7 — Linux and macOS (milestone `7 - Platforms`)
 
 - [ ] Ports and platform-specific audio/video paths.
 - [ ] CI green on `windows-latest`, `ubuntu-latest`, `macos-latest`, and Apple
@@ -166,10 +162,9 @@ still receives track 1; all tests green.
 **Acceptance criteria:** all platform notes accurate; anything unverifiable
 on real hardware flagged in [RISKS.md](RISKS.md).
 
-**Dependencies:** Phase 4; parallel with 5/6 where possible. **Issue map:**
-issues TBD (labels `platform:linux`, `platform:macos`).
+**Dependencies:** Phase 4; parallel with 5/6 where possible. **Issue map (milestone `7 - Platforms`):** [#48](https://github.com/limapedro/wormhole/issues/48) (Linux), [#49](https://github.com/limapedro/wormhole/issues/49) (macOS), [#50](https://github.com/limapedro/wormhole/issues/50) (Windows installer), [#51](https://github.com/limapedro/wormhole/issues/51) (Linux package), [#52](https://github.com/limapedro/wormhole/issues/52) (macOS signing/notarization).
 
-## Phase 8 — Hardening (milestone `8 — Hardening`)
+## Phase 8 — Hardening (milestone `8 - Hardening`)
 
 - Fuzz every network-input parser; 24h+ soak; chaos (loss, reorder, delay,
   bandwidth caps, abrupt disconnects); leak checks; crash recovery.
@@ -177,9 +172,9 @@ issues TBD (labels `platform:linux`, `platform:macos`).
 **Acceptance criteria:** no crash/freeze under any harness-generated failure;
 all sanitizer/soak tests pass. **Dependencies:** Phases 4–7.
 
-**Issue map:** issues TBD (labels `harness`, `perf`).
+**Issue map (milestone `8 - Hardening`):** [#53](https://github.com/limapedro/wormhole/issues/53) (fuzzing), [#54](https://github.com/limapedro/wormhole/issues/54) (soak), [#55](https://github.com/limapedro/wormhole/issues/55) (chaos), [#56](https://github.com/limapedro/wormhole/issues/56) (leaks/crash recovery).
 
-## Phase 9 — Release (milestone `9 — Release`)
+## Phase 9 — Release (milestone `9 - Release`)
 
 - Semantic-version releases, CI-built artifacts for all three platforms with
   checksums; release notes from [PROGRESS.md](PROGRESS.md); user docs,
@@ -188,4 +183,4 @@ all sanitizer/soak tests pass. **Dependencies:** Phases 4–7.
 **Acceptance criteria:** `v0.1.0` and later tagged; artifacts attached;
 docs complete. **Dependencies:** Phase 8.
 
-**Issue map:** issues TBD (label `docs`).
+**Issue map (milestone `9 - Release`):** [#57](https://github.com/limapedro/wormhole/issues/57) (release artifacts), [#58](https://github.com/limapedro/wormhole/issues/58) (user docs/migration/attribution).
