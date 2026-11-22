@@ -8,6 +8,8 @@
  */
 #if defined(_MSC_VER)
 #define _CRT_SECURE_NO_WARNINGS
+#else
+#define _POSIX_C_SOURCE 200809L
 #endif
 
 #include "wormhole/harness.h"
@@ -29,11 +31,24 @@ static void wh_sleep_us(unsigned long us) { Sleep((DWORD)((us + 999UL) / 1000UL)
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 typedef int wh_socket_t;
 #define WH_INVALID_SOCKET (-1)
-static void wh_sleep_ms(unsigned ms) { usleep((useconds_t)ms * 1000u); }
-static void wh_sleep_us(unsigned long us) { usleep((useconds_t)us); }
+static void wh_sleep_ms(unsigned ms)
+{
+    struct timespec ts;
+    ts.tv_sec = (time_t)(ms / 1000u);
+    ts.tv_nsec = (long)(ms % 1000u) * 1000000L;
+    nanosleep(&ts, NULL);
+}
+static void wh_sleep_us(unsigned long us)
+{
+    struct timespec ts;
+    ts.tv_sec = (time_t)(us / 1000000UL);
+    ts.tv_nsec = (long)(us % 1000000UL) * 1000L;
+    nanosleep(&ts, NULL);
+}
 #endif
 
 static int parse_endpoint(const char *text, char *host, size_t host_cap,
