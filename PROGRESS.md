@@ -53,6 +53,24 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — 1440p gaming PC → 1080p streaming PC workflow (exp_011)
+
+- Configured the sender profile for 2560x1440 base → 1920x1080 output at 60
+  fps (matching the physical 2560x1440 display), the receiver for 1920x1080/60,
+  and added a 40 Mbit/s capped proxy config
+  (`harness/config/obs-proxy-40m.toml`).
+- Through OBS-MCP, launched both instances, confirmed video settings via
+  WebSocket, created/confirmed a Display Capture source (`monitor_capture`
+  in OBS 33), DesktopAudio, MicOne and MicTwo, and verified all four active.
+- Clean 12 s capture: 1,427 packets (802 JPEG + 625 WAVE), 34,282,274 bytes in
+  13.35 s = **20.54 Mbit/s** (below the 40 Mbit/s cap), byte-identical
+  round-trip; all 802 frames decoded at 1920x1080. OBS stats: 60 fps, 0
+  skipped render frames; sender CPU 4.27 % / 354.8 MB, receiver 2.84 % /
+  304.2 MB. Details in [exp_011/FINDINGS.md](exp_011/FINDINGS.md).
+- Fixed two bugs found during the run: wrong Display Capture source kind, and
+  OBS-MCP's WebSocket client not consuming the `Identified` reply (breaking
+  `GetStats`). OBS-MCP repo updated and verified.
+
 ### 2026-11-22 — OBS launch blockers removed; OBS-MCP sub-project created
 
 - `scripts/setup_portable_obs.ps1` now compiles `scripts/obs_plugin_stub.c`

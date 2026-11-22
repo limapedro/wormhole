@@ -248,6 +248,10 @@ int wh_cmd_dissect(const wh_config_t *config)
     size_t jpeg = 0;
     size_t wave = 0;
     size_t unknown = 0;
+    uint64_t first_ts = 0;
+    uint64_t last_ts = 0;
+    uint64_t jpeg_bytes = 0;
+    int have_ts = 0;
     uint8_t *round_trip;
     size_t round_trip_len = 0;
     FILE *report;
@@ -286,9 +290,15 @@ int wh_cmd_dissect(const wh_config_t *config)
             free(round_trip);
             return 1;
         }
-        if (packet.header.kind == WH_KIND_JPEG)
+        if (!have_ts) {
+            first_ts = packet.header.timestamp;
+            have_ts = 1;
+        }
+        last_ts = packet.header.timestamp;
+        if (packet.header.kind == WH_KIND_JPEG) {
             ++jpeg;
-        else if (packet.header.kind == WH_KIND_WAVE)
+            jpeg_bytes += (uint64_t)packet.header.size;
+        } else if (packet.header.kind == WH_KIND_WAVE)
             ++wave;
         else
             ++unknown;
@@ -336,6 +346,16 @@ int wh_cmd_dissect(const wh_config_t *config)
     fprintf(report, "  \"input\": \"%s\",\n", escaped);
     fprintf(report, "  \"packet_count\": %zu,\n  \"byte_count\": %zu,\n", packets, (size_t)length);
     fprintf(report, "  \"jpeg\": %zu,\n  \"wave\": %zu,\n  \"unknown\": %zu,\n", jpeg, wave, unknown);
+    {
+        double seconds = have_ts ? (double)(last_ts - first_ts) / 1e9 : 0.0;
+        fprintf(report, "  \"first_timestamp_ns\": %llu,\n", (unsigned long long)first_ts);
+        fprintf(report, "  \"last_timestamp_ns\": %llu,\n", (unsigned long long)last_ts);
+        fprintf(report, "  \"duration_s\": %.6f,\n", seconds);
+        fprintf(report, "  \"bytes_per_sec\": %.1f,\n",
+                seconds > 0.0 ? (double)length / seconds : 0.0);
+        fprintf(report, "  \"avg_jpeg_payload_bytes\": %.1f,\n",
+                jpeg ? (double)jpeg_bytes / (double)jpeg : 0.0);
+    }
     fprintf(report, "  \"round_trip_ok\": true\n}\n");
     fclose(report);
 
