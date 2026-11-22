@@ -53,6 +53,21 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — OBS launch blockers removed; OBS-MCP sub-project created
+
+- `scripts/setup_portable_obs.ps1` now compiles `scripts/obs_plugin_stub.c`
+  with MSVC and replaces the six bundled modules that abort OBS 33 startup
+  (AJA, DeckLink, multi-source-record, obs-shaderfilter) in both portable
+  copies, and enables obs-websocket 5 through its JSON config. Verified with a
+  Win32 window-title enumeration: **zero `Plugin Errors` dialogs**, Teleport
+  0.8.0 loads, scenes load normally.
+- New independent public repository **limapedro/OBS-MCP** (all C, MIT, 10 MCP
+  tools, OBS WebSocket v5 client, CPU/log sampling, two-portable-OBS control).
+  Its `docs/VERIFICATION.md` records a full MCP session: both OBS instances
+  launched, `GetVersion` succeeded on both (OBS 33.0.0, obs-websocket 5.7.6),
+  CPU 0.094 s / 0.78 % / 257.7 MB sampled, logs tailed, both terminated. CI
+  green on Windows/Linux/macOS.
+
 ### 2026-11-22 — Rust workspace removed; repository is all C
 
 - Following the user directive and the evidence in `exp_005`–`exp_010`, the

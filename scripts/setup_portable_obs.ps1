@@ -153,5 +153,53 @@ $sceneSource.settings.items += [ordered]@{
 $receiverScene.name = 'WormholeReceiver'
 $receiverScene | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $receiver 'config\obs-studio\basic\scenes\WormholeReceiver.json') -Encoding UTF8
 
+# Replace bundled modules that abort a clean OBS 33 launch with a no-op
+# module that satisfies libobs' ABI. Deleting them makes OBS fail with
+# "Failed to load core module aja", so replacement is the correct fix.
+$stubSource = Join-Path $root 'scripts\obs_plugin_stub.c'
+$vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+if (-not (Test-Path $vsWhere)) {
+    throw "Visual Studio vswhere.exe not found; cannot build the OBS module stub"
+}
+$vsInstall = & $vsWhere -latest -products * -property installationPath | Select-Object -First 1
+$vcvars = Join-Path $vsInstall 'VC\Auxiliary\Build\vcvars64.bat'
+if (-not (Test-Path $vcvars)) { throw "vcvars64.bat not found at $vcvars" }
+New-Item -ItemType Directory -Force -Path (Join-Path $root 'build\c') | Out-Null
+$stubDll = Join-Path $root 'build\c\obs_plugin_stub.dll'
+$buildCmd = "`"$vcvars`" && cl /nologo /LD /W4 /O2 /Fo:build\c\obs_plugin_stub.obj /Fe:build\c\obs_plugin_stub.dll `"$stubSource`""
+cmd.exe /c $buildCmd | Out-Null
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path $stubDll)) { throw "Failed to build OBS module stub" }
+
+$failingModules = @(
+    'core\aja\aja.dll',
+    'core\aja-output-ui\aja-output-ui.dll',
+    'core\decklink\decklink.dll',
+    'core\decklink-captions\decklink-captions.dll',
+    'core\decklink-output-ui\decklink-output-ui.dll',
+    'obs-plugins\64bit\multi-source-record.dll',
+    'obs-plugins\64bit\obs-shaderfilter.dll'
+)
+foreach ($dir in @($sender, $receiver)) {
+    foreach ($module in $failingModules) {
+        $target = Join-Path $dir $module
+        if (Test-Path $target) { Copy-Item $stubDll $target -Force }
+    }
+
+    # obs-websocket 5 settings live in plugin_config JSON, not basic.ini.
+    $wsDir = Join-Path $dir 'config\obs-studio\plugin_config\obs-websocket'
+    New-Item -ItemType Directory -Force -Path $wsDir | Out-Null
+    $port = if ($dir -eq $sender) { 4455 } else { 4456 }
+    $wsConfig = @{
+        first_load = $false
+        server_enabled = $true
+        server_port = $port
+        alerts_enabled = $false
+        auth_required = $false
+        server_password = ''
+    } | ConvertTo-Json -Compress
+    [IO.File]::WriteAllText((Join-Path $wsDir 'config.json'), $wsConfig, (New-Object Text.UTF8Encoding $false))
+}
+
 Write-Host "Configured sender: $sender"
 Write-Host "Configured receiver: $receiver"
+Write-Host "Stubbed $($failingModules.Count) failing modules per instance and enabled OBS WebSocket"
