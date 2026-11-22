@@ -101,6 +101,19 @@ static void test_malformed(void)
     printf("ok: v2 malformed input rejected\n");
 }
 
+static void test_text_roundtrip(void)
+{
+    uint8_t buf[4096];
+    char out[512];
+    const char *text = "V:1\nA:Scene\nS:Scene\nI:Main Monitor|video|1|0|0\n";
+    size_t n = wh2_build_text(buf, sizeof(buf), WH2_MSG_SCENE_MANIFEST, 7, 99, text);
+    assert(n > WH2_HEADER_LEN);
+    assert(wh2_parse_text(buf, n, out, sizeof(out)) == strlen(text));
+    assert(strcmp(out, text) == 0);
+    assert(wh2_parse_text(buf, WH2_HEADER_LEN, out, sizeof(out)) == 0);
+    printf("ok: v2 text/scene-manifest round-trip\n");
+}
+
 int main(void)
 {
     test_hello_roundtrip();
@@ -108,6 +121,7 @@ int main(void)
     test_stream_desc_roundtrip();
     test_video_audio_roundtrip();
     test_malformed();
+    test_text_roundtrip();
     printf("ALL V2 TESTS PASSED\n");
     return 0;
 }

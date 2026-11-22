@@ -125,7 +125,10 @@ style built only with the OBS properties API (no Qt/C++).
 `scripts/setup_portable_obs.ps1` configures the two portable OBS instances with
 Teleport removed. See [exp_013](exp_013/FINDINGS.md),
 [exp_014](exp_014/FINDINGS.md), [exp_015](exp_015/FINDINGS.md) and
-[exp_016](exp_016/FINDINGS.md). Disabling the uplink is crash-free and calls
+[exp_016](exp_016/FINDINGS.md), [exp_017](exp_017/FINDINGS.md) and
+[exp_018](exp_018/FINDINGS.md). The v0.2 scene mirror is verified with the
+`verify-local-preserve2.ps1` and `verify-control.ps1` OBS-MCP scripts; results
+are in `exp_results/`. Disabling the uplink is crash-free and calls
 `obs_output_end_data_capture()` so OBS releases its raw-video lock and Output
 Mode becomes editable again.
 
