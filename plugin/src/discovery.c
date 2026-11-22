@@ -26,6 +26,8 @@ static wh_mutex_t peers_mutex;
 static int peers_mutex_ready;
 static volatile int sender_running;
 static volatile int receiver_running;
+static volatile int sender_thread_valid;
+static volatile int receiver_thread_valid;
 static wh_thread_t sender_thread;
 static wh_thread_t receiver_thread;
 static wh_socket_t sender_sock = WH_INVALID_SOCKET;
@@ -187,30 +189,48 @@ static WH_THREAD_API discovery_receiver_thread(WH_THREAD_ARG arg)
 
 int wh_discovery_sender_start(const char *name, uint16_t port)
 {
-    if (sender_running)
+    if (sender_thread_valid)
         return 1;
     snprintf(sender_name, sizeof(sender_name), "%s", name ? name : "Wormhole Sender");
     sender_port = port;
     sender_running = 1;
-    return wh_thread_create(&sender_thread, discovery_sender_thread, NULL);
+    if (!wh_thread_create(&sender_thread, discovery_sender_thread, NULL)) {
+        sender_running = 0;
+        return 0;
+    }
+    sender_thread_valid = 1;
+    return 1;
 }
 
 void wh_discovery_sender_stop(void)
 {
+    if (!sender_thread_valid)
+        return;
     sender_running = 0;
-    wh_net_close(sender_sock);
+    /* Join before the thread can be restarted; the thread owns (and closes)
+     * its own socket, so closing it here would double-close. */
+    wh_thread_join(sender_thread);
+    sender_thread_valid = 0;
 }
 
 int wh_discovery_receiver_start(void)
 {
-    if (receiver_running)
+    if (receiver_thread_valid)
         return 1;
     receiver_running = 1;
-    return wh_thread_create(&receiver_thread, discovery_receiver_thread, NULL);
+    if (!wh_thread_create(&receiver_thread, discovery_receiver_thread, NULL)) {
+        receiver_running = 0;
+        return 0;
+    }
+    receiver_thread_valid = 1;
+    return 1;
 }
 
 void wh_discovery_receiver_stop(void)
 {
+    if (!receiver_thread_valid)
+        return;
     receiver_running = 0;
-    wh_net_close(receiver_sock);
+    wh_thread_join(receiver_thread);
+    receiver_thread_valid = 0;
 }

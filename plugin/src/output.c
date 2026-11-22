@@ -48,6 +48,7 @@ typedef struct {
     wh_socket_t listener;
     wh_socket_t client;
     volatile int running;
+    volatile int thread_valid;
     wh_thread_t thread_handle;
     wh_mutex_t video_mutex;
     wh_video_item_t *video_head;
@@ -91,6 +92,7 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
 {
     wh_output_t *ctx = arg;
     uint8_t *frame = (uint8_t *)malloc(4u * 1024u * 1024u);
+    wh_socket_t client = WH_INVALID_SOCKET;
     size_t frame_len = 0;
     wh2_hello_t hello;
     wh2_hello_ack_t ack;
@@ -98,15 +100,21 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
     memset(&hello, 0, sizeof(hello));
     memset(&ack, 0, sizeof(ack));
 
-    if (!wh_net_accept(ctx->listener, &ctx->client)) {
-        blog(LOG_WARNING, "[wormhole] no sender connection");
+    if (!wh_net_accept(ctx->listener, &client)) {
+        blog(LOG_INFO, "[wormhole] accept ended");
         free(frame);
         return WH_THREAD_RET;
     }
+    if (!ctx->running) {
+        wh_net_close(client);
+        free(frame);
+        return WH_THREAD_RET;
+    }
+    ctx->client = client; /* stop() owns closing this socket */
     blog(LOG_INFO, "[wormhole] receiver connected");
 
     /* v2 negotiation: the receiver speaks first. */
-    if (!wh_net_recv_frame(ctx->client, frame, 4u * 1024u * 1024u, &frame_len)) {
+    if (!wh_net_recv_frame(client, frame, 4u * 1024u * 1024u, &frame_len)) {
         blog(LOG_WARNING, "[wormhole] failed to read HELLO");
         free(frame);
         return WH_THREAD_RET;
@@ -123,14 +131,14 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
     {
         size_t n = wh2_build_hello_ack(frame, 4u * 1024u * 1024u, ++ctx->sequence,
                                        0, WH2_CAP_MULTI_AUDIO, ctx->name);
-        int sent = n && wh_net_send(ctx->client, frame, n);
+        int sent = n && wh_net_send(client, frame, n);
         blog(LOG_INFO, "[wormhole] ACK built=%zu sent=%d", n, sent);
         if (sent)
             negotiated = 1;
     }
     blog(LOG_INFO, "[wormhole] negotiation=%d, entering send loop", negotiated);
-    if (!obs_output_active(ctx->output))
-        obs_output_begin_data_capture(ctx->output, 0);
+    /* Data capture is started in wh_output_start() on OBS's own thread;
+     * calling OBS APIs from this worker thread races with output shutdown. */
     ctx->track_count = negotiated ? (int)hello.track_count : 1;
     /* Stream descriptors are emitted when OBS actually delivers a track. */
     (void)hello;
@@ -174,7 +182,7 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
                     memcpy(frame + WH_HEADER_LEN + WH_IMAGE_HEADER_LEN, jpeg, jpeg_len);
                     n = WH_HEADER_LEN + WH_IMAGE_HEADER_LEN + jpeg_len;
                 }
-                if (n && !wh_net_send(ctx->client, frame, n))
+                if (n && !wh_net_send(client, frame, n))
                     ctx->running = 0;
                 wh_media_free_jpeg(jpeg);
             }
@@ -203,7 +211,7 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
                                               audio->timestamp, audio->track_id, name,
                                               audio->sample_rate, audio->channels,
                                               audio->bits, 1, 0);
-                    if (!n || !wh_net_send(ctx->client, frame, n))
+                    if (!n || !wh_net_send(client, frame, n))
                         ctx->running = 0;
                     audio->need_desc = 0;
                 }
@@ -231,7 +239,7 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
                 memcpy(frame + WH_HEADER_LEN + WH_WAVE_HEADER_LEN, audio->pcm, audio->pcm_len);
                 n = WH_HEADER_LEN + WH_WAVE_HEADER_LEN + audio->pcm_len;
             }
-            if (n && !wh_net_send(ctx->client, frame, n))
+            if (n && !wh_net_send(client, frame, n))
                 ctx->running = 0;
             free(audio->pcm);
             bfree(audio);
@@ -242,8 +250,8 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
         }
     }
 
-    wh_net_close(ctx->client);
-    ctx->client = WH_INVALID_SOCKET;
+    /* The client socket is closed by wh_output_stop(), which owns the
+     * join; closing it here as well caused a double-close race. */
     free(frame);
     (void)ack;
     return WH_THREAD_RET;
@@ -277,6 +285,33 @@ static void wh_output_destroy(void *data)
     bfree(ctx);
 }
 
+/* Return queued items to their pools / free them. Called only after the
+ * worker thread has been joined, so no producer can touch the queues. */
+static void wh_output_drain(wh_output_t *ctx)
+{
+    wh_mutex_lock(&ctx->video_mutex);
+    while (ctx->video_head) {
+        wh_video_item_t *v = ctx->video_head;
+        ctx->video_head = v->next;
+        v->pool_next = ctx->video_pool;
+        ctx->video_pool = v;
+    }
+    ctx->video_tail = NULL;
+    ctx->video_count = 0;
+    wh_mutex_unlock(&ctx->video_mutex);
+
+    wh_mutex_lock(&ctx->audio_mutex);
+    while (ctx->audio_head) {
+        wh_audio_item_t *a = ctx->audio_head;
+        ctx->audio_head = a->next;
+        free(a->pcm);
+        bfree(a);
+    }
+    ctx->audio_tail = NULL;
+    ctx->audio_count = 0;
+    wh_mutex_unlock(&ctx->audio_mutex);
+}
+
 static bool wh_output_start(void *data)
 {
     wh_output_t *ctx = data;
@@ -286,12 +321,24 @@ static bool wh_output_start(void *data)
         return false;
     }
     ctx->running = 1;
+    memset(ctx->desc_sent, 0, sizeof(ctx->desc_sent));
 #ifdef MAX_AUDIO_MIXES
     obs_output_set_mixers(ctx->output, (size_t)((1u << MAX_AUDIO_MIXES) - 1u));
 #else
     obs_output_set_mixers(ctx->output, 0x3f);
 #endif
-    wh_thread_create(&ctx->thread_handle, wh_output_thread, ctx);
+    if (!wh_thread_create(&ctx->thread_handle, wh_output_thread, ctx)) {
+        blog(LOG_ERROR, "[wormhole] cannot start worker thread");
+        ctx->running = 0;
+        wh_net_close(ctx->listener);
+        ctx->listener = WH_INVALID_SOCKET;
+        return false;
+    }
+    ctx->thread_valid = 1; /* stop() may now claim exactly one shutdown */
+    /* OBS sets its internal "active" flag here, and raw callbacks begin on
+     * OBS's own threads. Calling this from the worker thread raced with
+     * shutdown and was the source of the disable-time crash. */
+    obs_output_begin_data_capture(ctx->output, 0);
     blog(LOG_INFO, "[wormhole] listening on %u", port);
     return true;
 }
@@ -300,6 +347,13 @@ static void wh_output_stop(void *data, uint64_t ts)
 {
     (void)ts;
     wh_output_t *ctx = data;
+    /* obs_output_release() calls this callback a second time from OBS's
+     * destroy path. Joining a thread handle twice / double-closing sockets
+     * crashed OBS when the user disabled the uplink. Only one caller may
+     * perform the teardown. */
+    if (!ctx->thread_valid)
+        return;
+    ctx->thread_valid = 0;
     blog(LOG_INFO, "[wormhole] output stop requested");
     ctx->running = 0;
     wh_net_close(ctx->listener);
@@ -307,6 +361,14 @@ static void wh_output_stop(void *data, uint64_t ts)
     wh_net_close(ctx->client);
     ctx->client = WH_INVALID_SOCKET;
     wh_thread_join(ctx->thread_handle);
+    ctx->thread_handle = NULL;
+    wh_output_drain(ctx);
+    /* OBS does NOT end raw data capture in the normal obs_output_stop()
+     * path - the output plugin must do it. Without this, the canvas keeps
+     * its raw_active count and OBS grays out Settings > Output Mode forever.
+     * obs_output_destroy() waits for the async end-capture thread. */
+    obs_output_end_data_capture(ctx->output);
+    blog(LOG_INFO, "[wormhole] data capture ended");
 }
 
 static void wh_output_raw_video(void *data, struct video_data *frame)
