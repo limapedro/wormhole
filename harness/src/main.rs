@@ -5,6 +5,7 @@
 
 mod bench;
 mod config;
+mod differential;
 mod dissect;
 mod media;
 mod proxy;
@@ -52,6 +53,8 @@ enum Command {
     RefReceiver,
     /// Measure dissector throughput (harness self-benchmark, not Teleport).
     Bench,
+    /// Compare two captures packet by packet (differential tester stage 1).
+    Differential,
 }
 
 fn main() -> ExitCode {
@@ -84,6 +87,7 @@ fn main() -> ExitCode {
         Command::RefSender => reference::sender(&cfg),
         Command::RefReceiver => reference::receiver(&cfg),
         Command::Bench => bench::run(&cfg),
+        Command::Differential => differential::run(&cfg),
     };
 
     match result {

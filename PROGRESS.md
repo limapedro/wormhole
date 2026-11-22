@@ -20,7 +20,7 @@ Newest entries first. Updated on every merge to `main`.
 |---|---|---|---|
 | 0 — Setup | `0 - Setup` | 100% | Repo, docs, milestones, labels, issues and CI skeleton (#5) complete |
 | 1 — Recon | `1 - Recon` | 75% | Upstream cloned/pinned, license decision logged, full source-derived protocol and parity checklist done; source build and exp_000 baseline remain blocked/open |
-| 2 — Harness | `2 - Harness` | 60% | `wh-protocol` + typed TOML CLI, dissector, basic proxy, full media matrix + 4-track audio, synth/replay/sink, self-bench and standalone reference peers implemented; exp_001–exp_003 confirmed; instrumented build, pcap timestamps, differential tester, mock OBS host and full S1–S10 runner pending |
+| 2 — Harness | `2 - Harness` | 65% | `wh-protocol` + typed TOML CLI, dissector, basic proxy, full media matrix + 4-track audio, synth/replay/sink, self-bench, standalone reference peers and capture-level differential tester implemented; exp_001–exp_004 confirmed; instrumented build, pcap timestamps, mock OBS host, live differential driving and full S1–S10 runner pending |
 | 3 — Architecture | `3 - Architecture` | 0% | Starting defaults drafted in `ARCHITECTURE_LOG.md`, unconfirmed |
 | 4 — Parity | `4 - Parity` | 0% | Not started |
 | 5 — Efficiency | `5 - Efficiency` | 0% | Not started |
@@ -52,6 +52,17 @@ are no measured numbers.
 | Network failure behavior | chaos suite | not measured | graceful degradation | Phase 8 |
 
 ## Log
+
+### 2026-11-22 — Differential capture comparison (Phase 2)
+
+- Added a `differential` command that decodes two captures and compares
+  message type, timestamp and payload hash, writing a JSON report and failing
+  on mismatch. Stage 1 of issue #21.
+- [exp_004/FINDINGS.md](exp_004/FINDINGS.md) (hypothesis first): identical
+  captures reported `identical=true` with exit 0; flipping one timestamp byte
+  produced `packet 0: timestamp 0 vs 1` with exit 1. 19 tests pass; fmt/clippy
+  clean. No parity claim is made — no real Teleport vs Wormhole comparison has
+  occurred.
 
 ### 2026-11-22 — Full media matrix and multi-track generator (Phase 2)
 
