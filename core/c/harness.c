@@ -38,6 +38,13 @@ void wh_config_init(wh_config_t *config)
     config->media_height = 720u;
     config->media_frames = 60u;
     config->media_fps = 30u;
+    snprintf(config->quality_output, sizeof(config->quality_output), "%s", "exp_results/quality.json");
+    config->expected_r = -1;
+    config->expected_g = -1;
+    config->expected_b = -1;
+    snprintf(config->differential_left, sizeof(config->differential_left), "%s", "exp_results/left.bin");
+    snprintf(config->differential_right, sizeof(config->differential_right), "%s", "exp_results/right.bin");
+    snprintf(config->differential_output, sizeof(config->differential_output), "%s", "exp_results/differential.json");
 }
 
 static char *trim(char *text)
@@ -123,6 +130,24 @@ static void apply_value(wh_config_t *config, const char *section,
             config->media_frames = (unsigned)strtoul(value, NULL, 10);
         else if (strcmp(key, "fps") == 0)
             config->media_fps = (unsigned)strtoul(value, NULL, 10);
+        else if (strcmp(key, "quality_output") == 0)
+            set_string(config->quality_output, sizeof(config->quality_output), value);
+    } else if (strcmp(section, "quality") == 0) {
+        if (strcmp(key, "output") == 0)
+            set_string(config->quality_output, sizeof(config->quality_output), value);
+        else if (strcmp(key, "expected_r") == 0)
+            config->expected_r = (int)strtol(value, NULL, 10);
+        else if (strcmp(key, "expected_g") == 0)
+            config->expected_g = (int)strtol(value, NULL, 10);
+        else if (strcmp(key, "expected_b") == 0)
+            config->expected_b = (int)strtol(value, NULL, 10);
+    } else if (strcmp(section, "differential") == 0) {
+        if (strcmp(key, "left") == 0)
+            set_string(config->differential_left, sizeof(config->differential_left), value);
+        else if (strcmp(key, "right") == 0)
+            set_string(config->differential_right, sizeof(config->differential_right), value);
+        else if (strcmp(key, "output") == 0)
+            set_string(config->differential_output, sizeof(config->differential_output), value);
     }
 }
 

@@ -21,7 +21,9 @@ static void print_help(void)
     printf("  check    Print the effective typed configuration\n");
     printf("  dissect  Decode a capture and verify byte-identical re-encoding\n");
     printf("  synth    Write a deterministic capture fixture\n");
-    printf("  proxy    Transparent TCP capture/impairment proxy\n\n");
+    printf("  proxy    Transparent TCP capture/impairment proxy\n");
+    printf("  quality  Decode JPEG frames and report image quality\n");
+    printf("  differential  Compare two captures packet by packet\n\n");
     printf("Options:\n");
     printf("  --config <path>  Typed TOML configuration file\n");
     printf("  --help           Print this message\n");
@@ -67,6 +69,10 @@ int main(int argc, char **argv)
         return wh_cmd_synth(&config);
     if (strcmp(command, "proxy") == 0)
         return wh_cmd_proxy(&config);
+    if (strcmp(command, "quality") == 0)
+        return wh_cmd_quality(&config);
+    if (strcmp(command, "differential") == 0)
+        return wh_cmd_differential(&config);
 
     fprintf(stderr, "error: unknown command %s\n", command);
     return 1;

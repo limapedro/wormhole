@@ -58,6 +58,8 @@ build\c\wormhole-harness.exe --help
 build\c\wormhole-harness.exe --config harness/config/example.toml check
 build\c\wormhole-harness.exe --config harness/config/example.toml synth
 build\c\wormhole-harness.exe --config harness/config/obs-proxy.toml dissect
+build\c\wormhole-harness.exe --config harness/config/obs-quality.toml quality
+build\c\wormhole-harness.exe --config exp_results/diff-c.toml differential
 ```
 
 The script locates Visual Studio with `vswhere`, runs `vcvars64.bat`, compiles
@@ -66,8 +68,9 @@ the C protocol library, tests, `capture_writer` and the C harness with
 the C harness produces the same results as the Rust one on the live OBS
 capture. The C harness currently implements `check`, `synth`, `dissect` and `proxy`
 (including both-direction capture and delay/drop/bandwidth impairments);
-quality, differential, media generation and reference peers remain temporarily
-in Rust. `exp_008/FINDINGS.md` verifies the C proxy against the live OBS pair.
+quality and differential are also implemented in C (`exp_009/FINDINGS.md`).
+Only media generation and the standalone reference peers remain temporarily in
+Rust. `exp_008/FINDINGS.md` verifies the C proxy against the live OBS pair.
 
 To use the C proxy in the two-OBS workflow:
 
