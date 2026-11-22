@@ -54,7 +54,7 @@ typedef struct {
 static const char *wh_source_name(void *type_data)
 {
     (void)type_data;
-    return "WORMHOLE // VIDEO";
+    return "Wormhole Video Capture";
 }
 
 static void wh_source_defaults(obs_data_t *settings)
@@ -81,8 +81,8 @@ static obs_properties_t *wh_source_properties(void *data)
     (void)data;
     p = obs_properties_add_text(props, "banner",
         "  ______________________________________________________\n"
-        " | W O R M H O L E  //  V I D E O   S I G N A L             |\n"
-        " |  v0.2.0  ::  add Wormhole Audio sources separately      |\n"
+        " | W O R M H O L E  //  V I D E O   C A P T U R E          |\n"
+        " |  gaming PC output video - add audio sources separately  |\n"
         " |____________________________________________________|\n",
         OBS_TEXT_INFO);
     obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);

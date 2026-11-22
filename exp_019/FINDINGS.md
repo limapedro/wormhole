@@ -54,6 +54,19 @@ so no manual port entry is needed. Verified with
 `exp_results/wormhole-channels.jsonl`: the list property returned
 `TONE  (127.0.0.1:18091)` and the recording had the tone at -25.5 dB.
 
+## Simplified UX (follow-up)
+
+- The gaming PC now auto-creates one `Wormhole Audio - <source>` sender per
+  audio source in its Audio Mixer, on ports 18091+; no manual sender setup.
+  References are held for the output lifetime (releasing them destroyed the
+  sources immediately).
+- The streaming PC's `Wormhole Video Capture` comes from the gaming PC's video
+  output; `Wormhole Audio` sources pick a channel from a dropdown of the
+  gaming PC's mixer sources (name from `Advanced Audio Properties`) with host
+  and port filled automatically.
+- Verified dropdown items: `Desktop Audio`, `Mic/Aux`, `Desktop Audio 2`,
+  `Mic One`, `Mic Two`, `TONE`, each with its auto port.
+
 ## Limitations
 
 - Each channel needs its own unique port; no automatic port negotiation.

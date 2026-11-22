@@ -77,35 +77,14 @@ static obs_properties_t *wh_audio_out_properties(void *data)
     obs_properties_t *props = obs_properties_create();
     obs_property_t *p;
     (void)data;
-
-    p = obs_properties_add_text(props, "banner",
-        "  ______________________________________________________\n"
-        " | W O R M H O L E // S E N D   A U D I O                  |\n"
-        " |  GAMING PC ONLY - one source, one port, one thread      |\n"
-        " |____________________________________________________|\n",
-        OBS_TEXT_INFO);
-    obs_property_text_set_info_type(p, OBS_TEXT_INFO_ERROR);
-
-    p = obs_properties_add_text(props, "warn_role",
-        "Add this source on the GAMING PC. It does not appear in the Audio Mixer "
-        "(expected - it is a sender). The streaming PC must add 'Wormhole RECV - "
-        "Streaming PC' instead.", OBS_TEXT_INFO);
-
-    p = obs_properties_add_text(props, "howto",
-        "1) Choose a source below.  2) Give it a unique free port.\n"
-        "3) On the streaming PC add 'Wormhole Audio' with this host/port.",
-        OBS_TEXT_INFO);
-    obs_property_set_long_description(p,
-        "Add several Wormhole Audio Outputs to send several channels independently.");
-
-    p = obs_properties_add_list(props, "target", "> OBS AUDIO SOURCE",
+    p = obs_properties_add_text(props, "hint",
+        "Sends one gaming-PC audio source to the streaming PC. Wormhole creates "
+        "these automatically for every source in your Audio Mixer.", OBS_TEXT_INFO);
+    p = obs_properties_add_list(props, "target", "> AUDIO SOURCE",
                                 OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     obs_property_list_add_string(p, "- none -", "");
     obs_enum_sources(wh_enum_audio_sources, p);
-    obs_property_set_long_description(p,
-        "Any audio source on this gaming PC: Desktop Audio, microphone, ...");
-
-    obs_properties_add_int(props, "port", "> TCP PORT (unique per channel)", 1024, 65535, 1);
+    obs_properties_add_int(props, "port", "> TCP PORT", 1024, 65535, 1);
     return props;
 }
 
@@ -311,7 +290,7 @@ typedef struct {
 static const char *wh_audio_in_name(void *data)
 {
     wh_audio_in_t *ctx = data;
-    return ctx && ctx->name[0] ? ctx->name : "WORMHOLE RECV - Streaming PC";
+    return ctx && ctx->name[0] ? ctx->name : "Wormhole Audio";
 }
 
 static void wh_audio_in_defaults(obs_data_t *settings)
@@ -348,37 +327,21 @@ static obs_properties_t *wh_audio_in_properties(void *data)
     size_t i;
 
     (void)data;
-    p = obs_properties_add_text(props, "banner",
-        "  ______________________________________________________\n"
-        " | W O R M H O L E // R E C V   A U D I O                  |\n"
-        " |  STREAMING PC ONLY - appears in the Audio Mixer         |\n"
-        " |____________________________________________________|\n",
-        OBS_TEXT_INFO);
-    obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);
-
-    p = obs_properties_add_text(props, "warn_role",
-        "Add this source on the STREAMING PC (not the gaming PC). It has its own "
-        "fader in the Audio Mixer once added to the scene.", OBS_TEXT_INFO);
-
-    p = obs_properties_add_text(props, "howto",
-        "Pick a channel from the gaming PC below. Host and port are filled in "
-        "automatically from the Wormhole video connection.",
-        OBS_TEXT_INFO);
-
-    p = obs_properties_add_list(props, "channel", "> AUDIO SOURCE ON GAMING PC",
+    p = obs_properties_add_text(props, "hint",
+        "Pick a gaming-PC audio source (microphone or output). Host and port "
+        "are filled in automatically.", OBS_TEXT_INFO);
+    p = obs_properties_add_list(props, "channel", "> GAMING PC AUDIO SOURCE",
                                 OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     obs_property_list_add_string(p, "- MANUAL ENTRY -", "");
     for (i = 0; i < count; ++i) {
         char key[192];
         char label[256];
         snprintf(key, sizeof(key), "%s|%u", channels[i].host, (unsigned)channels[i].port);
-        snprintf(label, sizeof(label), "%s  (%s:%u)", channels[i].name,
-                 channels[i].host, (unsigned)channels[i].port);
+        snprintf(label, sizeof(label), "%s", channels[i].name);
         obs_property_list_add_string(p, label, key);
     }
     obs_property_set_modified_callback2(p, wh_audio_channel_changed, NULL);
-
-    p = obs_properties_add_text(props, "host", "> HOST / IP (auto)", OBS_TEXT_DEFAULT);
+    obs_properties_add_text(props, "host", "> HOST / IP (auto)", OBS_TEXT_DEFAULT);
     obs_properties_add_int(props, "port", "> TCP PORT (auto)", 1024, 65535, 1);
     return props;
 }
