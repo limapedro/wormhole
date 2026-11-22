@@ -53,6 +53,23 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — Wormhole plugin runs end to end on both OBS instances (exp_014)
+
+- Built the real plugin (`wormhole.dll`, C + SIMD libjpeg-turbo 3.2.0) with
+  Teleport-style Tools menu, sender output, receiver source, v2 negotiation,
+  dynamic multi-audio from OBS's mixers (no user "Audio Tracks" setting), and
+  bounded queues that keep network work off OBS threads.
+- `scripts/setup_portable_obs.ps1` now removes Teleport entirely and configures
+  the gaming PC with its primary 2560×1440 monitor + three audio sources and
+  the streaming PC with one Wormhole receiver source.
+- Verified with both instances launched: Tools menu installed on both, no
+  Teleport in logs, v2 negotiated, 6 audio track descriptors, both previews
+  showing the same desktop with correct colors (user-confirmed). OBS CPU
+  ~1.5–3 % per instance. Evidence in [exp_014/FINDINGS.md](exp_014/FINDINGS.md).
+- Fixed eight defects found during integration, including stack overflow from
+  4 MB stack buffers, `bzalloc`/`free` heap corruption, a `/MT` vs `/MD` CRT
+  mismatch, absolute timestamps and a wrong color matrix. All recorded.
+
 ### 2026-11-22 — Wormhole plugin foundation and protocol v2 (exp_013)
 
 - Honest status: the Wormhole plugin did **not** exist before this work; only

@@ -79,6 +79,11 @@ wh_status_t wh_decode(const uint8_t *data, size_t len, size_t *offset,
 wh_status_t wh_encode(const wh_packet_t *packet, uint8_t *out, size_t cap,
                       size_t *written);
 
+/* Common 16-byte header encoder and type-specific header encoders. */
+int wh_header_encode(uint8_t *out, size_t cap, const wh_header_t *header);
+int wh_image_header_encode(uint8_t *out, size_t cap, const wh_image_header_t *image);
+int wh_wave_header_encode(uint8_t *out, size_t cap, const wh_wave_header_t *wave);
+
 /* Helpers matching the receiver rules documented in PROTOCOL.md. */
 int wh_image_is_full_range(const wh_image_header_t *image);
 int wh_wave_channels(int32_t speakers);

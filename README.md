@@ -8,9 +8,10 @@ practical latency, CPU use, memory use and overhead.
 Wormhole keeps everything Teleport does, adds multiple simultaneous audio
 outputs, and targets Windows, Linux and macOS.
 
-> **Status:** Phase 1 (reconnaissance). The repository contains planning docs
-> and a source-derived protocol specification; no plugin code yet. See
-> [PROGRESS.md](PROGRESS.md) for the live dashboard.
+> **Status:** The all-C `wormhole` plugin now loads in OBS 33.0.0, appears in
+> the Tools menu, and streams video with multi-audio between two portable OBS
+> instances (see [exp_014](exp_014/FINDINGS.md)). See [PROGRESS.md](PROGRESS.md)
+> for the live dashboard.
 
 ## Why
 
