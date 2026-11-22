@@ -53,6 +53,20 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — Crash-free disable and unlocked OBS output settings (exp_016)
+
+- Fixed an OBS crash when disabling Wormhole: the stop callback ran twice and
+  joined/closed an already-freed thread handle. Stop is now idempotent and
+  called unconditionally from the control source.
+- Fixed a shutdown hang: `shutdown()` before `close()` interrupts blocking
+  sends, and `obs_output_begin_data_capture()` no longer runs on a foreign
+  thread.
+- Fixed OBS Settings → Output Mode staying greyed out: the output now calls
+  `obs_output_end_data_capture()` on stop, so `obs_video_active()` returns to 0
+  when Wormhole is disabled (verified 1 → 0 → 1, Mode changed to Advanced).
+- Receiver now reconnects automatically when the sender restarts.
+- Evidence in [exp_016/FINDINGS.md](exp_016/FINDINGS.md).
+
 ### 2026-11-22 — Friendlier UX: sender identity, LAN discovery, cyberpunk UI (exp_015)
 
 - Sender can be **renamed**: a new `IDENTIFIER` field (default from hostname,

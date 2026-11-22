@@ -153,13 +153,14 @@ static uint64_t wh_relative_ts(wh_source_t *ctx, uint64_t timestamp)
     return timestamp - ctx->clock_offset;
 }
 
-static WH_THREAD_API wh_source_thread(WH_THREAD_ARG arg)
+/* One connection session. Returns when the link drops; the caller retries. */
+static void wh_source_session(wh_source_t *ctx)
 {
-    wh_source_t *ctx = arg;
     size_t len = 0;
     uint8_t hello[1024];
     size_t hello_len;
 
+    ctx->have_offset = 0; /* each sender stream has its own clock origin */
     while (ctx->running && ctx->sock == WH_INVALID_SOCKET) {
         obs_data_t *settings = obs_source_get_settings(ctx->source);
         const char *peer = obs_data_get_string(settings, "peer");
@@ -182,13 +183,16 @@ static WH_THREAD_API wh_source_thread(WH_THREAD_ARG arg)
         wh_sleep_ms(500);
     }
     if (ctx->sock == WH_INVALID_SOCKET)
-        return WH_THREAD_RET;
+        return;
     blog(LOG_INFO, "[wormhole] linking to %s:%u", ctx->host, ctx->port);
     hello_len = wh2_build_hello(hello, sizeof(hello), 1, 0,
                                 WH2_CAP_MULTI_AUDIO | WH2_CAP_CLOCK_SYNC,
                                 "wormhole-receiver", 3, 1920, 1080, 60, 1);
-    if (!hello_len || !wh_net_send(ctx->sock, hello, hello_len))
-        return WH_THREAD_RET;
+    if (!hello_len || !wh_net_send(ctx->sock, hello, hello_len)) {
+        wh_net_close(ctx->sock);
+        ctx->sock = WH_INVALID_SOCKET;
+        return;
+    }
 
     while (ctx->running && wh_net_recv_frame(ctx->sock, ctx->frame, 4u * 1024u * 1024u, &len)) {
         wh2_header_t header;
@@ -283,8 +287,22 @@ static WH_THREAD_API wh_source_thread(WH_THREAD_ARG arg)
     }
 
     wh_net_close(ctx->sock);
-    blog(LOG_INFO, "[wormhole] receiver stopped: %llu video, %llu audio frames",
+    ctx->sock = WH_INVALID_SOCKET;
+    blog(LOG_INFO, "[wormhole] link dropped: %llu video, %llu audio frames; retrying",
          (unsigned long long)ctx->frames, (unsigned long long)ctx->audio_frames);
+}
+
+/* Keep re-establishing the uplink. This lets the receiver recover when the
+ * gaming PC disables and re-enables Wormhole, or restarts OBS entirely. */
+static WH_THREAD_API wh_source_thread(WH_THREAD_ARG arg)
+{
+    wh_source_t *ctx = arg;
+    while (ctx->running) {
+        wh_source_session(ctx);
+        if (!ctx->running)
+            break;
+        wh_sleep_ms(1000);
+    }
     return WH_THREAD_RET;
 }
 

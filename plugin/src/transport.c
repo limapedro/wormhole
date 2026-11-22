@@ -74,8 +74,13 @@ int wh_net_connect(const char *host, uint16_t port, wh_socket_t *out)
 
 void wh_net_close(wh_socket_t sock)
 {
-    if (sock != WH_INVALID_SOCKET)
-        wh_close(sock);
+    if (sock == WH_INVALID_SOCKET)
+        return;
+    /* shutdown() wakes a blocking send()/recv() on another thread. Closing
+     * the handle alone does not reliably cancel an in-flight blocking call
+     * on Windows, which made output shutdown hang while joining the worker. */
+    shutdown(sock, SD_BOTH);
+    wh_close(sock);
 }
 
 int wh_net_send(wh_socket_t sock, const uint8_t *data, size_t len)

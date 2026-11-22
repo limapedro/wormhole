@@ -47,6 +47,8 @@ static bool wh_status_clicked(obs_properties_t *props, obs_property_t *p, void *
     blog(LOG_INFO, "[wormhole] discovery  : UDP %u / media TCP %u",
          (unsigned)WH_DISCOVERY_PORT, (unsigned)wh_current_port);
     blog(LOG_INFO, "[wormhole] hint: the IDENTIFIER is broadcast to every receiver on the LAN");
+    blog(LOG_INFO, "[wormhole] obs_video_active=%d (0 means Output Mode is editable)",
+         (int)obs_video_active());
     return false;
 }
 
@@ -100,10 +102,25 @@ static void *wh_control_create(obs_data_t *settings, obs_source_t *source)
     return (void *)1;
 }
 
+/* Tear down the current uplink. Safe to call repeatedly and from destroy. */
+static void wh_control_shutdown(void)
+{
+    wh_discovery_sender_stop();
+    if (wh_output) {
+        /* OBS clears its "active" flag asynchronously, so testing
+         * obs_output_active() here could skip the stop callback and let
+         * obs_output_release() invoke it later against a freed thread
+         * handle. Stop unconditionally; the output stop is idempotent. */
+        obs_output_stop(wh_output);
+        obs_output_release(wh_output);
+        wh_output = NULL;
+    }
+}
+
 static void wh_control_destroy(void *data)
 {
     (void)data;
-    wh_discovery_sender_stop();
+    wh_control_shutdown();
 }
 
 static void wh_control_update(void *data, obs_data_t *settings)
@@ -113,13 +130,7 @@ static void wh_control_update(void *data, obs_data_t *settings)
     const char *name = obs_data_get_string(settings, "name");
     int port = (int)obs_data_get_int(settings, "port");
 
-    wh_discovery_sender_stop();
-    if (wh_output && obs_output_active(wh_output))
-        obs_output_stop(wh_output);
-    if (wh_output) {
-        obs_output_release(wh_output);
-        wh_output = NULL;
-    }
+    wh_control_shutdown();
     if (!enabled)
         return;
     if (!name || !*name) {
