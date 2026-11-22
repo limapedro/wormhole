@@ -20,7 +20,7 @@ Newest entries first. Updated on every merge to `main`.
 |---|---|---|---|
 | 0 — Setup | `0 - Setup` | 100% | Repo, docs, milestones, labels, issues and CI skeleton (#5) complete |
 | 1 — Recon | `1 - Recon` | 75% | Upstream cloned/pinned, license decision logged, full source-derived protocol and parity checklist done; source build and exp_000 baseline remain blocked/open |
-| 2 — Harness | `2 - Harness` | 35% | `wh-protocol` + typed TOML CLI, dissector, basic proxy, media/synth/replay/sink and self-bench implemented; exp_001 fidelity confirmed; instrumented build, pcap timestamps, multi-track media, differential tester and full benchmark runner pending |
+| 2 — Harness | `2 - Harness` | 50% | `wh-protocol` + typed TOML CLI, dissector, basic proxy, media/synth/replay/sink, self-bench and standalone reference peers implemented; exp_001 and exp_002 confirmed; instrumented build, pcap timestamps, multi-track media, differential tester, mock OBS host and full S1–S10 runner pending |
 | 3 — Architecture | `3 - Architecture` | 0% | Starting defaults drafted in `ARCHITECTURE_LOG.md`, unconfirmed |
 | 4 — Parity | `4 - Parity` | 0% | Not started |
 | 5 — Efficiency | `5 - Efficiency` | 0% | Not started |
@@ -52,6 +52,24 @@ are no measured numbers.
 | Network failure behavior | chaos suite | not measured | graceful degradation | Phase 8 |
 
 ## Log
+
+### 2026-11-22 — Reference sender/receiver implemented (Phase 2)
+
+- Added `ref-sender` and `ref-receiver` commands using `jpeg-encoder` and
+  `jpeg-decoder`: standalone Teleport-protocol peers with no libobs/Go
+  dependency, closing issue #19.
+- [exp_002/FINDINGS.md](exp_002/FINDINGS.md) (hypothesis written first):
+  10 frames at 1280x720/30 fps through the proxy produced 20 packets
+  (10 JPEG + 10 WAVE), 10 successful JPEG decodes, 0 failures, 10 unique
+  timestamps spanning 0–300 ms; proxy capture 359,903 bytes decoded and
+  re-encoded byte-identically (SHA-256 `5125EBC1…0254`). Two independent runs
+  produced identical hashes. A first determinism attempt failed because the
+  rewritten config did not update the proxy listen port; recorded as a
+  negative result.
+- CI for PR #61: Windows and Linux passed; the first macOS attempt failed on a
+  transient `codeload.github.com` DNS error while downloading an action
+  (runner infrastructure, not code) and passed after a rerun. All three jobs
+  green before merge.
 
 ### 2026-11-22 — First code: Rust workspace, CI and harness foundation (Phase 2)
 

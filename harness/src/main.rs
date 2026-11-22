@@ -8,6 +8,7 @@ mod config;
 mod dissect;
 mod media;
 mod proxy;
+mod reference;
 mod replay;
 mod synth;
 
@@ -45,6 +46,10 @@ enum Command {
     Replay,
     /// Accept one TCP connection and store its bytes (test sink).
     Sink,
+    /// Standalone Teleport-protocol reference sender.
+    RefSender,
+    /// Standalone Teleport-protocol reference receiver.
+    RefReceiver,
     /// Measure dissector throughput (harness self-benchmark, not Teleport).
     Bench,
 }
@@ -76,6 +81,8 @@ fn main() -> ExitCode {
         Command::Synth => synth::run(&cfg),
         Command::Replay => replay::replay(&cfg),
         Command::Sink => replay::sink(&cfg),
+        Command::RefSender => reference::sender(&cfg),
+        Command::RefReceiver => reference::receiver(&cfg),
         Command::Bench => bench::run(&cfg),
     };
 

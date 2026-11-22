@@ -22,6 +22,8 @@ pub struct Config {
     pub media: MediaConfig,
     /// Harness self-benchmark settings.
     pub bench: BenchConfig,
+    /// Standalone reference sender/receiver settings.
+    pub reference: ReferenceConfig,
 }
 
 /// Shared experiment settings.
@@ -154,6 +156,37 @@ impl Default for BenchConfig {
             packets: 1_000,
             payload_bytes: 4096,
             output: PathBuf::from("exp_results/dissector-bench.csv"),
+        }
+    }
+}
+
+/// Standalone Teleport-protocol reference peer settings.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ReferenceConfig {
+    /// Address the reference sender connects to.
+    pub target: String,
+    /// Address the reference receiver listens on.
+    pub listen: String,
+    /// Number of video frames to send.
+    pub frames: u32,
+    /// Nominal frame rate used for pacing and timestamps.
+    pub fps: u32,
+    /// JPEG quality (1-100), matching Teleport's default of 90.
+    pub quality: u8,
+    /// Receiver CSV output path.
+    pub output: PathBuf,
+}
+
+impl Default for ReferenceConfig {
+    fn default() -> Self {
+        Self {
+            target: "127.0.0.1:18081".to_string(),
+            listen: "127.0.0.1:18081".to_string(),
+            frames: 30,
+            fps: 30,
+            quality: 90,
+            output: PathBuf::from("exp_results/reference-receiver.csv"),
         }
     }
 }
