@@ -5,48 +5,75 @@ without a human in the loop. It lives in `harness/` once code lands (Phase 2).
 This document describes each component, how to run it, and what is currently
 known. Planned commands are marked **planned** until implemented.
 
-## Layout (planned)
+## Layout
 
 ```
-harness/
-  proxy/            transparent TCP + UDP/mDNS capture/impairment proxy
-  dissector/        capture -> structured messages, round-trip validation
-  instrumented/     patched upstream Teleport (separate branch/patch set)
-  mock_obs/         minimal libobs host for headless CI tests
-  media/            deterministic video and audio generators
-  reference/        minimal standalone sender/receiver for Teleport protocol
-  replay/           replay a capture against any receiver; drive senders
-  differential/     run same input through Teleport and Wormhole, compare
-  bench/            run scenarios from PERFORMANCE_TARGETS.md, emit CSV/JSON
-  config/           typed TOML config files (no flag sprawl)
+Cargo.toml              workspace root
+crates/protocol/        wh-protocol: byte-accurate Teleport framing (Rust library)
+harness/                wormhole-harness CLI
+  src/config.rs         typed TOML config structs with explicit defaults
+  src/dissect.rs        capture -> structured messages, round-trip validation
+  src/proxy.rs          transparent TCP capture/impairment proxy
+  src/media.rs          deterministic I420 video + S16LE audio generators
+  src/synth.rs          deterministic Teleport-compatible capture fixture
+  src/replay.rs         replay capture to proxy; minimal test sink
+  src/bench.rs          dissector throughput self-benchmark (not Teleport)
+  config/               example.toml, proxy-test.toml, proxy-dissect.toml
+exp_001/                first fidelity experiment (HYPOTHESIS + FINDINGS)
 ```
+
+Planned for later phases: `instrumented/` (patched upstream), `mock_obs/`
+(headless libobs host), `reference/` (standalone peers), `differential/`
+(Teleport vs Wormhole comparison), and the full scenario benchmark runner.
 
 Tools take a config path, not dozens of flags: `tool --config path/to.toml`
-(plus `--help`). Only `--config` and `--help` are permitted.
+(plus `--help`). Only `--config` and `--help` are accepted flags; subcommands
+are positional.
 
 ## Components and status
 
 | Component | Status | Purpose |
 |---|---|---|
-| Capture/impairment proxy | Planned | Record bytes with high-res timestamps; inject delay, drops, bandwidth limits; export pcap |
-| Protocol dissector | Planned | Decode header fields, message types, sizes, timestamps, payload formats; byte-identical decode→encode round-trip test |
-| Instrumented upstream build | Planned | Patched Teleport with tracing: per-frame timings, allocation counts, GC pauses, cgo calls, queue depths. Kept separate from Wormhole code |
+| Wire-format library (`wh-protocol`) | **Implemented** | Strict bounded decode/encode of the 16-byte header, 88-byte `ImageHeader` and 16-byte `WaveHeader`; unknown types preserved; 10 unit tests |
+| Capture/impairment proxy | **Implemented (basic)** | Records sender→receiver bytes to a raw capture; injects fixed delay, deterministic drop percentage and an approximate bandwidth cap. **pcap export and high-resolution per-byte timestamps are not yet implemented** |
+| Protocol dissector | **Implemented** | Decodes a capture to JSON summaries and asserts byte-identical re-encode |
+| Synthetic media generator | **Implemented (basic)** | Deterministic I420 color bars with moving marker; S16LE WAV with a 440/880 Hz sync tone. Multiple resolutions and multi-track are not yet implemented |
+| Capture fixture, replay and sink | **Implemented** | Produce and replay deterministic Teleport-compatible byte streams for unattended tests |
+| Dissector self-benchmark | **Implemented** | Measures harness encode/decode throughput only — explicitly **not** a Teleport or Wormhole benchmark |
+| Instrumented upstream build | Blocked | Patched Teleport with tracing: frame timings, allocations, GC pauses, cgo calls, queue depths; kept separate from Wormhole code. See build blockers below |
 | Mock OBS host | Planned | Load/exercise a plugin without full OBS GUI in CI; fallback: headless/scripted OBS, limits documented |
-| Synthetic media generator | Planned | Color bars, counter overlay, motion at 720p/1080p/1440p/4K 30/60 fps; tones with sync markers, multi-channel, multi-track |
 | Reference sender/receiver | Planned | Standalone Teleport-protocol peers for differential testing |
-| Replay tool | Planned | Replay captures against any receiver; drive any sender through the dissector |
 | Differential tester | Planned | Compare decoded output, timing, bandwidth and failure behavior |
-| Benchmark runner | Planned | Run `PERFORMANCE_TARGETS.md` scenarios; write CSV/JSON + summary into `exp_NNN/` |
+| Full benchmark runner | Planned | Run `PERFORMANCE_TARGETS.md` scenarios S1–S10; write CSV/JSON + summary into `exp_NNN/` |
 
-## Running (planned command shapes)
+## Running (implemented commands)
 
 ```bash
-harness bench --config harness/config/exp_000.toml
-harness proxy  --config harness/config/proxy-lan.toml
-harness dissect --config harness/config/dissect-example.toml   # writes round-trip check
-harness differential --config harness/config/differential.toml
-harness replay --config harness/config/replay-example.toml
+cargo test --workspace --all-targets
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+
+# Print the effective typed configuration
+cargo run -p wormhole-harness -- --config harness/config/example.toml check
+
+# Deterministic capture fixture -> dissector (round-trip assertion)
+cargo run -p wormhole-harness -- --config harness/config/example.toml synth
+cargo run -p wormhole-harness -- --config harness/config/example.toml dissect
+
+# Synthetic media
+cargo run -p wormhole-harness -- --config harness/config/example.toml media
+
+# End-to-end proxy test: sink + proxy in separate terminals, then:
+cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml sink
+cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml proxy
+cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml replay
+cargo run -p wormhole-harness -- --config harness/config/proxy-dissect.toml dissect
+
+# Harness self-benchmark (not a product benchmark)
+cargo run -p wormhole-harness -- --config harness/config/example.toml bench
 ```
+
+Fidelity evidence for these commands is in [exp_001](exp_001/FINDINGS.md).
 
 Raw captures over a few MB are **not committed**; they are regenerated by
 scripts or attached to releases. Only structured results and findings are

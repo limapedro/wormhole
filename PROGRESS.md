@@ -6,21 +6,21 @@ Newest entries first. Updated on every merge to `main`.
 
 | Field | Value |
 |---|---|
-| Current phase | Phase 1 — Reconnaissance |
-| Overall completion | ~30% (setup done; recon source-derived; no plugin code yet) |
-| Buildable `main` | Yes (docs only) |
-| CI | Not yet configured (skeleton lands with first code commit, issue #5) |
+| Current phase | Phase 2 — Harness |
+| Overall completion | ~40% (setup + recon + harness foundation; no plugin code yet) |
+| Buildable `main` | Yes (docs + Rust workspace; CI green locally) |
+| CI | Configured on `windows-latest`, `ubuntu-latest`, `macos-latest` (issue #5 done) |
 | Blocked items | No local C compiler/libobs SDK headers → source build and instrumented build blocked (issues #6/#15, RISKS.md R13). `exp_000` baseline not yet run. |
-| Latest benchmark | **None** — baseline still pending `exp_000`; no performance claims made |
-| Next three actions | 1. Capture real Teleport traffic in the harness and confirm `C`-class protocol facts (#13/#14/#23). 2. Build synthetic media + benchmark runner to run `exp_000` (#17/#18/#22/#11). 3. Resolve portable toolchain blocker for the instrumented build (#6/#15). |
+| Latest benchmark | **No product benchmark.** Harness self-benchmark only (exp_001, explicitly not a Teleport/Wormhole result) |
+| Next three actions | 1. Capture real Teleport 0.8.0 traffic through the proxy and confirm `C`-class protocol facts (#13/#14/#23, `exp_002`). 2. Extend media generator to full resolution/fps matrix + multi-track (#17/#18). 3. Resolve portable toolchain blocker for the instrumented build (#6/#15). |
 
 ## Phase completion
 
 | Phase | Milestone | Progress | Notes |
 |---|---|---|---|
-| 0 — Setup | `0 - Setup` | 85% | Repo, docs PR, 10 milestones, 12 labels and 57 issues done; CI skeleton (#5) pending |
+| 0 — Setup | `0 - Setup` | 100% | Repo, docs, milestones, labels, issues and CI skeleton (#5) complete |
 | 1 — Recon | `1 - Recon` | 75% | Upstream cloned/pinned, license decision logged, full source-derived protocol and parity checklist done; source build and exp_000 baseline remain blocked/open |
-| 2 — Harness | `2 - Harness` | 0% | Not started |
+| 2 — Harness | `2 - Harness` | 35% | `wh-protocol` + typed TOML CLI, dissector, basic proxy, media/synth/replay/sink and self-bench implemented; exp_001 fidelity confirmed; instrumented build, pcap timestamps, multi-track media, differential tester and full benchmark runner pending |
 | 3 — Architecture | `3 - Architecture` | 0% | Starting defaults drafted in `ARCHITECTURE_LOG.md`, unconfirmed |
 | 4 — Parity | `4 - Parity` | 0% | Not started |
 | 5 — Efficiency | `5 - Efficiency` | 0% | Not started |
@@ -52,6 +52,30 @@ are no measured numbers.
 | Network failure behavior | chaos suite | not measured | graceful degradation | Phase 8 |
 
 ## Log
+
+### 2026-11-22 — First code: Rust workspace, CI and harness foundation (Phase 2)
+
+- Added the first code commit: `crates/protocol/` (`wh-protocol`) with strict,
+  bounded, byte-accurate decode/encode for the Teleport wire format, and
+  `harness/` (`wormhole-harness`) with typed TOML config structs and only
+  `--config` / `--help` flags. Added `Cargo.toml` workspace and
+  `.github/workflows/ci.yml` build/test matrix (Windows, Linux, macOS) with
+  fmt, clippy `-D warnings`, tests and release build — closing issue #5.
+- Harness commands implemented: `check`, `synth`, `dissect`, `media`, `proxy`,
+  `replay`, `sink`, `bench` (the last is a **harness self-benchmark**, not a
+  product benchmark and not cited by any performance claim).
+- `exp_001/HYPOTHESIS.md` written before the formal run;
+  [exp_001/FINDINGS.md](exp_001/FINDINGS.md) records the result: 120 synthetic
+  packets, 184,800 bytes, decode→encode byte-identical; proxy capture and sink
+  file share SHA-256 `75487ADA…DDC` with the fixture; 15 unit tests pass.
+  A first run failed because `replay` targeted the sink instead of the proxy;
+  fixed and retested.
+- Local verification: `cargo fmt --all -- --check`,
+  `cargo clippy --workspace --all-targets -- -D warnings`,
+  `cargo test --workspace --all-targets` all pass.
+- Still missing: pcap export and high-resolution timestamps in the proxy,
+  full media matrix/multi-track, instrumented upstream build, mock OBS host,
+  reference peers, differential tester and S1–S10 benchmark runner.
 
 ### 2026-11-22 — Phase 1 reconnaissance complete (source-derived)
 
