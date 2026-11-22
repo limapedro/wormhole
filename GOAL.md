@@ -49,41 +49,41 @@ labelled `blocked` (per the working loop in the standing contract).
 
 ## Parity checklist — original Teleport
 
-> **Status of this checklist:** this is the *starting hypothesis* derived from
-> the project description, written before reconnaissance. Every row must be
-> confirmed or corrected against the cloned upstream source in Phase 1 and the
-> status changed from `unverified`. A third party must be able to implement a
-> compatible receiver from [PROTOCOL.md](PROTOCOL.md) plus this checklist.
+> **Status of this checklist:** all rows were confirmed against the pinned
+> upstream source during Phase 1 (2026-11-22). See the evidence column and
+> [PROTOCOL.md](PROTOCOL.md), which is now source-complete enough to implement
+> a compatible receiver. `confirmed` means source-derived; `verified` is
+> reserved for rows with differential-test evidence, which Phase 2/4 will add.
 
-Legend: `unverified` | `confirmed` | `verified` (confirmed + differential
-test evidence) | `N/A` (does not exist in upstream).
+Legend: `unverified` | `confirmed` (source evidence) | `verified` (confirmed +
+differential test evidence) | `N/A` (does not exist in upstream).
 
-| # | Feature area | Expected Teleport feature (hypothesis) | Status | Evidence |
+| # | Feature area | Teleport feature (confirmed) | Status | Evidence |
 |---|---|---|---|---|
-| P01 | Sender | A source/output that sends program output to peers | unverified | — |
-| P02 | Receiver | A source that receives and renders video in OBS | unverified | — |
-| P03 | Filter | Any OBS filter exposed by the plugin | unverified | — |
-| P04 | Output | Any OBS output exposed by the plugin | unverified | — |
-| P05 | Discovery | Automatic peer discovery (mDNS/zeroconf) | unverified | — |
-| P06 | Discovery | Service type, TXT records and port layout | unverified | — |
-| P07 | Connection | Manual connection by host/IP and port | unverified | — |
-| P08 | Connection | Multiple simultaneous receivers from one sender | unverified | — |
-| P09 | Video | Codec used (JPEG-family hypothesis) | unverified | — |
-| P10 | Video | Quality/bitrate control and its units | unverified | — |
-| P11 | Video | Resolution / FPS negotiation or pass-through | unverified | — |
-| P12 | Video | Frame drop / backpressure policy | unverified | — |
-| P13 | Audio | Codec, sample format, rate, channels | unverified | — |
-| P14 | Audio | Audio chunking and timestamps | unverified | — |
-| P15 | Sync | A/V synchronization mechanism and clocks | unverified | — |
-| P16 | Reliability | Disconnect / reconnect behavior | unverified | — |
-| P17 | Reliability | Slow-receiver behavior | unverified | — |
-| P18 | Settings | Every exposed setting and its default | unverified | — |
-| P19 | UI | Every UI element and its behavior | unverified | — |
-| P20 | Transport | TCP vs UDP per stream; ports used | unverified | — |
-| P21 | Handshake | Connection and capability handshake sequence | unverified | — |
-| P22 | Platform | Windows build/install steps | unverified | — |
-| P23 | Platform | Linux and macOS support in upstream | unverified | — |
-| P24 | Error handling | Behavior on bad network / malformed input | unverified | — |
+| P01 | Sender | `teleport-output` OBS output; also A/V filter sender | confirmed | `main.go:185-196`, `output.go:54-102` |
+| P02 | Receiver | `teleport-source` async A/V source with `obs_source_output_video2`/`audio` | confirmed | `main.go:132-143`, `source.go:317,355` |
+| P03 | Filter | Three filters: `teleport-filter` (A/V), `teleport-video-filter`, `teleport-audio-filter` | confirmed | `main.go:145-183`, `filter.go:55-68` |
+| P04 | Output | `teleport-output`, flags `OBS_OUTPUT_AV`, raw video+audio, dropped-frame getter | confirmed | `main.go:185-196` |
+| P05 | Discovery | `schollz/peerdiscovery` UDP multicast — **not mDNS** (hypothesis overturned) | confirmed | `announcer.go:60-64`, `discoverer.go:43-47` |
+| P06 | Discovery | Multicast `239.255.255.250:9999`, 1 s interval, raw JSON payload with Name/Port/AudioAndVideo/Version | confirmed | `peerdiscovery/internal.go:22-40`, `types.go:31-37` |
+| P07 | Connection | Manual `manual-ip` (`host:port`) plus `has-audio-and-video` toggle; list takes discovery data | confirmed | `source.go:472-475`, `source.go:79-84` |
+| P08 | Connection | Multiple simultaneous receivers; per-connection goroutine and 1000-buffer channel | confirmed | `sender.go:39-68` |
+| P09 | Video | JPEG via libjpeg-turbo 3.2.0 `tj3`, SIMD build | confirmed | `packet.go:53-124`, `build.yaml:29-36` |
+| P10 | Video | Integer quality 1–100, default 90, warning above 90; no bitrate setting | confirmed | `frontend.go:192-199,214` |
+| P11 | Video | No resolution/FPS negotiation; dimensions from JPEG SOF, timestamps from OBS | confirmed | `packet.go:130-134`, `types.go:39-43` |
+| P12 | Video | Encode queue >1 s increments dropped frames; per-connection drop above 800 queued buffers | confirmed | `output.go:165-170`, `sender.go:83-88` |
+| P13 | Audio | Raw interleaved PCM, no codec (Opus hypothesis overturned); OBS format/speaker enums on wire | confirmed | `packet.go:450-549` |
+| P14 | Audio | Chunk = one OBS audio callback; `Frames`, sample rate and format in 16-byte `WaveHeader`; OBS ns timestamp | confirmed | `packet.go:479-495`, `types.go:51-56` |
+| P15 | Sync | Sorted timestamp queue; A/V pairing gate; one-time offset; no drift correction | confirmed | `source.go:235-396` |
+| P16 | Reliability | 100 ms dial timeout, 100 ms retry, state reset on reconnect, EOF breaks read loop | confirmed | `source.go:490-511,530-564` |
+| P17 | Reliability | Slow receiver: queue warnings at 100, drops above 800; write error disconnects | confirmed | `sender.go:57-91` |
+| P18 | Settings | Sender: enabled, identifier, quality, show advanced, port (defaults false/""/90/false/0). Receiver: stream list, show advanced, manual IP, has-audio-and-video (defaults ""/false/""/false) | confirmed | `frontend.go:180-217`, `source.go:185-215` |
+| P19 | UI | Tools→Teleport menu, dummy property source, refresh list button, quality/enabled warnings, filter Apply button | confirmed | `frontend.go:67-113,180-207`, `filter.go:103-126` |
+| P20 | Transport | TCP for media on configurable port (0=auto); UDP multicast for discovery | confirmed | `output.go:235`, `sender.go`, `peerdiscovery` |
+| P21 | Handshake | **None** — no greeting, version or capability exchange on the wire | confirmed | `source.go:530-562`, `output.go:247-258` |
+| P22 | Platform | Windows build: cross-compiled via mingw in Docker CI; local build blocked (no C compiler) | confirmed | `build.yaml:17,46-67`, `HARNESS.md` |
+| P23 | Platform | Linux and macOS builds in upstream CI (x86_64/arm64, macOS 13 deployment target) | confirmed | `build.yaml:11-18` |
+| P24 | Error handling | Corrupt JPEG panic recovered and packet discarded; stream panic restarts read loop after 1 s | confirmed | `source.go:256-270,434-443` |
 
 Each row becomes or maps to a GitHub issue when issues are created after the
 docs PR merges. The checklist is kept in sync with `PROTOCOL.md` and the
