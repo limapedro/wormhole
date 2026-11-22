@@ -17,7 +17,7 @@ static uint16_t wh_current_port = 18090;
 static const char *wh_control_name(void *type_data)
 {
     (void)type_data;
-    return "WORMHOLE // SENDER";
+    return "WORMHOLE // GAME PC SERVER";
 }
 
 static void wh_default_name(char *dst, size_t cap)
@@ -37,6 +37,7 @@ static void wh_control_defaults(obs_data_t *settings)
     obs_data_set_default_string(settings, "name", name);
     obs_data_set_default_int(settings, "port", 18090);
     obs_data_set_default_int(settings, "quality", 90);
+    obs_data_set_default_int(settings, "tracks", 2);
 }
 
 static bool wh_status_clicked(obs_properties_t *props, obs_property_t *p, void *data)
@@ -60,8 +61,8 @@ static obs_properties_t *wh_control_properties(void *data)
 
     p = obs_properties_add_text(props, "banner",
         "  ______________________________________________________\n"
-        " |  W O R M H O L E   //   N E U R A L   U P L I N K   |\n"
-        " |  v0.2.0  ::  low-latency A/V transport             |\n"
+        " | W O R M H O L E // G A M E   P C   S E R V E R       |\n"
+        " |  v0.2.0  ::  host gameplay + audio tracks             |\n"
         " |____________________________________________________|\n",
         OBS_TEXT_INFO);
     obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);
@@ -71,6 +72,7 @@ static obs_properties_t *wh_control_properties(void *data)
     obs_property_text_set_info_type(p, OBS_TEXT_INFO_NORMAL);
     obs_properties_add_bool(props, "enabled", "> ENGAGE UPLINK");
     obs_properties_add_int(props, "port", "> TCP PORT", 1024, 65535, 1);
+    obs_properties_add_int(props, "tracks", "> AUDIO TRACKS (1-6)", 1, 6, 1);
     obs_properties_add_int_slider(props, "quality", "> JPEG QUALITY", 1, 100, 1);
 
     p = obs_properties_add_text(props, "sec2",
@@ -87,7 +89,7 @@ static obs_properties_t *wh_control_properties(void *data)
     obs_properties_add_button2(props, "status", "> PRINT STATUS TO LOG", wh_status_clicked, NULL);
 
     p = obs_properties_add_text(props, "footer",
-        " [ NET: UDP 18092 discovery / TCP 18090 media ]   [ CYBERPUNK BUILD ]",
+        " [ HOST MODE: sends one video signal + N audio channels ]  [ CYBERPUNK BUILD ]",
         OBS_TEXT_INFO);
     obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);
     return props;

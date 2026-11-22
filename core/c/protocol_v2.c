@@ -339,3 +339,26 @@ wh2_parse_status_t wh2_parse_audio(const uint8_t *data, size_t len, wh2_audio_t 
     out->payload_len = out->header.total_len - at;
     return WH2_PARSE_OK;
 }
+
+size_t wh2_build_text(uint8_t *out, size_t cap, uint16_t type, uint32_t sequence,
+                      uint64_t timestamp_ns, const char *text)
+{
+    size_t at = begin_frame(out, cap, type, sequence, timestamp_ns);
+    if (!at)
+        return 0;
+    at = put_string(out, cap, at, text);
+    if (!at)
+        return 0;
+    put_u32(out + 8, (uint32_t)at);
+    return at;
+}
+
+size_t wh2_parse_text(const uint8_t *data, size_t len, char *dst, size_t dst_cap)
+{
+    wh2_header_t header;
+    if (wh2_header_decode(data, len, &header) != WH2_PARSE_OK)
+        return 0;
+    if (!get_string(data, header.total_len, WH2_HEADER_LEN, dst, dst_cap))
+        return 0;
+    return strlen(dst);
+}

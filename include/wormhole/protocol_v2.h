@@ -16,6 +16,7 @@
 #define WH2_CAP_MULTI_AUDIO (1u << 0)
 #define WH2_CAP_SIMD_JPEG   (1u << 1)
 #define WH2_CAP_CLOCK_SYNC  (1u << 2)
+#define WH2_CAP_SCENE_SYNC  (1u << 3)
 
 typedef enum {
     WH2_MSG_HELLO = 1,
@@ -24,7 +25,10 @@ typedef enum {
     WH2_MSG_VIDEO = 16,
     WH2_MSG_AUDIO = 17,
     WH2_MSG_PING = 18,
-    WH2_MSG_GOODBYE = 19
+    WH2_MSG_GOODBYE = 19,
+    WH2_MSG_SCENE_REQUEST = 20,
+    WH2_MSG_SCENE_MANIFEST = 21,
+    WH2_MSG_CONTROL = 22
 } wh2_message_type_t;
 
 typedef struct {
@@ -124,6 +128,11 @@ size_t wh2_build_audio(uint8_t *out, size_t cap, uint32_t sequence,
 /* Parsers fill the caller-provided structs; payload pointers alias `data`. */
 wh2_parse_status_t wh2_parse_hello(const uint8_t *data, size_t len, wh2_hello_t *out);
 wh2_parse_status_t wh2_parse_hello_ack(const uint8_t *data, size_t len, wh2_hello_ack_t *out);
+
+/* Text-payload control messages (scene manifest request/response). */
+size_t wh2_build_text(uint8_t *out, size_t cap, uint16_t type, uint32_t sequence,
+                      uint64_t timestamp_ns, const char *text);
+size_t wh2_parse_text(const uint8_t *data, size_t len, char *dst, size_t dst_cap);
 wh2_parse_status_t wh2_parse_stream_desc(const uint8_t *data, size_t len, wh2_stream_desc_t *out);
 wh2_parse_status_t wh2_parse_video(const uint8_t *data, size_t len, wh2_video_t *out);
 wh2_parse_status_t wh2_parse_audio(const uint8_t *data, size_t len, wh2_audio_t *out);

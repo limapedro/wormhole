@@ -19,6 +19,7 @@
 #define WH_CONFIG "wormhole.json"
 
 void wh_register_source(void);
+void wh_register_audio_source(void);
 void wh_register_output(void);
 void wh_register_control(void);
 
@@ -39,6 +40,7 @@ static obs_data_t *wh_load_settings(void)
     obs_data_set_default_bool(settings, "enabled", false);
     obs_data_set_default_int(settings, "port", 18090);
     obs_data_set_default_int(settings, "quality", 90);
+    obs_data_set_default_int(settings, "tracks", 2);
     return settings;
 }
 
@@ -51,11 +53,45 @@ static void wh_save_settings(obs_data_t *settings)
     bfree(path);
 }
 
-static void wh_open_settings(void *data)
+static bool wh_find_receiver(void *param, obs_source_t *source)
+{
+    obs_source_t **out = param;
+    const char *id = obs_source_get_id(source);
+    if (id && strcmp(id, "wormhole-source") == 0) {
+        *out = obs_source_get_ref(source);
+        return false;
+    }
+    return true;
+}
+
+/* Server = gaming PC sending its output. Receiver = streaming PC mirroring it. */
+static void wh_open_server(void *data)
 {
     (void)data;
     if (wh_settings_source)
         obs_frontend_open_source_properties(wh_settings_source);
+}
+
+static void wh_open_receiver(void *data)
+{
+    obs_source_t *receiver = NULL;
+    (void)data;
+    obs_enum_sources(wh_find_receiver, &receiver);
+    if (!receiver) {
+        obs_source_t *scene_src = obs_frontend_get_current_scene();
+        receiver = obs_source_create("wormhole-source", "Wormhole", NULL, NULL);
+        if (receiver && scene_src) {
+            obs_scene_t *scene = obs_scene_from_source(scene_src);
+            if (scene)
+                obs_scene_add(scene, receiver);
+        }
+        if (scene_src)
+            obs_source_release(scene_src);
+    }
+    if (receiver) {
+        obs_frontend_open_source_properties(receiver);
+        obs_source_release(receiver);
+    }
 }
 
 static void wh_frontend_event(enum obs_frontend_event event, void *data)
@@ -65,8 +101,9 @@ static void wh_frontend_event(enum obs_frontend_event event, void *data)
         obs_data_t *settings = wh_load_settings();
         wh_settings_source = obs_source_create("wormhole-control", "Wormhole", settings, NULL);
         obs_data_release(settings);
-        obs_frontend_add_tools_menu_item("Wormhole...", wh_open_settings, NULL);
-        blog(LOG_INFO, "[wormhole] Tools menu installed");
+        obs_frontend_add_tools_menu_item("Wormhole - Host Game PC...", wh_open_server, NULL);
+        obs_frontend_add_tools_menu_item("Wormhole - Mirror Game PC...", wh_open_receiver, NULL);
+        blog(LOG_INFO, "[wormhole] Tools menu installed (Host / Mirror)");
     } else if (event == OBS_FRONTEND_EVENT_EXIT && wh_settings_source) {
         obs_data_t *settings = obs_source_get_settings(wh_settings_source);
         wh_save_settings(settings);
@@ -83,6 +120,7 @@ bool obs_module_load(void)
 #endif
     blog(LOG_INFO, "[wormhole] version %s", WH_VERSION);
     wh_register_source();
+    wh_register_audio_source();
     wh_register_output();
     wh_register_control();
     obs_frontend_add_event_callback(wh_frontend_event, NULL);

@@ -53,6 +53,19 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — v0.2 scene mirror, output-track audio, clean Tools UX (exp_018)
+
+- One composited video signal mirrored into `WH <scene>` scenes; the mirrored
+  video source is renamed to the sender's source name (`Main Monitor`).
+- Audio uses OBS output tracks (`raw_audio2`, default tracks 1–2, configurable
+  1–6), mapped to the sender's source names on the receiver. Mute/visibility/
+  active-scene changes propagate via a periodic versioned state manifest.
+- Mirroring is non-destructive: the streaming PC's mic/webcam are preserved and
+  copied into mirrored scenes (verified with `STREAM-PC MIC`).
+- Tools menu split into `Host Game PC` / `Mirror Game PC` entries.
+- exp_017 records the superseded per-source attempt; see
+  [exp_018/FINDINGS.md](exp_018/FINDINGS.md).
+
 ### 2026-11-22 — Crash-free disable and unlocked OBS output settings (exp_016)
 
 - Fixed an OBS crash when disabling Wormhole: the stop callback ran twice and

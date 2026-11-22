@@ -175,3 +175,9 @@ citing new evidence. Never silently change course. Newest entries first.
 
 - **Status: RESOLVED** by the newer entry at the top of this log:
   GPL-2.0-or-later. This placeholder entry is retained for history.
+
+
+## 2026-11-22 - v0.2 scene mirror (evidence exp_018)
+
+Decision: audio channels are OBS output tracks (raw_audio2 + obs_output_set_mixers), not per-source capture: two of five sources did not emit capture callbacks in exp_017. Mirroring is additive with WH-prefixed scenes so the streaming PC keeps its local mic/webcam. State sync uses a periodically re-sent full manifest instead of incremental events. Alternative rejected: wholesale scene collection copy (destroys local sources).
+

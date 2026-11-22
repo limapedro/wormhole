@@ -12,7 +12,9 @@ short resolution and a link to the evidence/decision; do not delete the row.
 | R05 | Performance targets are hypotheses, not measured | Could chase impossible targets or accept regressions | Complete `exp_000` baseline early; revise targets with evidence in PERFORMANCE_TARGETS.md | Open |
 | R06 | Full mock OBS host may be infeasible | Headless CI testing limited | Evaluate in Phase 2; if infeasible use scripted/headless OBS and document exact limits in HARNESS.md | Open |
 | R07 | mDNS/UDP discovery behavior on each OS differs | Discovery parity may fail on Linux/macOS | Capture discovery per platform with the proxy; document TXT/service layout in PROTOCOL.md | Open |
-| R08 | Multiple audio outputs mapping to OBS is undecided | Wrong design could require rework | Experiment with libobs per-track audio exposure (6 mixer tracks vs sources vs both); log decision in ARCHITECTURE_LOG.md | Open |
+| R08 | **Resolved 2026-11-22 by exp_018:** output-track model chosen (`raw_audio2` + `obs_output_set_mixers`); per-source capture retained only as history in exp_017. |
+| R09 | **Resolved 2026-11-22 by exp_018:** receiver presentation is `wormhole-audio` clones named after sender sources, in additive `WH ` scenes that preserve local mic/webcam. |
+| R08-old | Multiple audio outputs mapping to OBS is undecided | Wrong design could require rework | Experiment with libobs per-track audio exposure (6 mixer tracks vs sources vs both); log decision in ARCHITECTURE_LOG.md | Open |
 | R09 | Receiver-side presentation of multiple tracks is undecided (OBS sources emit one audio stream) | UX and routing issues on receive side | Evaluate companion sources vs mixer routing with evidence; log decision | Open |
 | R10 | Large captures / binaries in repo | Bloats history, leaks environment details | Keep raw captures git-ignored; regenerate via scripts or attach to releases; commit only summaries | Mitigated by .gitignore |
 | R11 | Windows driver/signing for installer | Distribution friction | Decide signing approach before release; document in PLATFORMS.md | Open |

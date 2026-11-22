@@ -359,3 +359,9 @@ Design constraints learned from Part 1 that v2 must address:
 - Carry speaker layout as a channel count plus explicit layout, not a raw
   libobs enum integer.
 - Define bounded queues and explicit drop policy; never block an OBS thread.
+
+
+## Part 2 addendum - v0.2 implemented messages
+
+v0.2 adds WH2_CAP_SCENE_SYNC (1<<3) and messages SCENE_REQUEST=20, SCENE_MANIFEST=21, CONTROL=22. The manifest is a text frame with newline fields: V:<version>, A:<active scene>, T:<id>|<name>, S:<scene>, I:<name>|<kind>|<visible>|<track>|<muted>. It is pushed on connect and on state change. wh2_parse_text() returns the parsed string length or 0. Evidence: exp_018/FINDINGS.md.
+
