@@ -63,7 +63,7 @@ static bool wh_enum_audio_sources(void *param, obs_source_t *source)
 static const char *wh_audio_out_name(void *data)
 {
     (void)data;
-    return "WORMHOLE // AUDIO OUTPUT";
+    return "WORMHOLE SEND - Gaming PC";
 }
 
 static void wh_audio_out_defaults(obs_data_t *settings)
@@ -80,11 +80,16 @@ static obs_properties_t *wh_audio_out_properties(void *data)
 
     p = obs_properties_add_text(props, "banner",
         "  ______________________________________________________\n"
-        " | W O R M H O L E // A U D I O   O U T P U T              |\n"
-        " |  one OBS source -> one TCP port -> one thread           |\n"
+        " | W O R M H O L E // S E N D   A U D I O                  |\n"
+        " |  GAMING PC ONLY - one source, one port, one thread      |\n"
         " |____________________________________________________|\n",
         OBS_TEXT_INFO);
-    obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);
+    obs_property_text_set_info_type(p, OBS_TEXT_INFO_ERROR);
+
+    p = obs_properties_add_text(props, "warn_role",
+        "Add this source on the GAMING PC. It does not appear in the Audio Mixer "
+        "(expected - it is a sender). The streaming PC must add 'Wormhole RECV - "
+        "Streaming PC' instead.", OBS_TEXT_INFO);
 
     p = obs_properties_add_text(props, "howto",
         "1) Choose a source below.  2) Give it a unique free port.\n"
@@ -306,7 +311,7 @@ typedef struct {
 static const char *wh_audio_in_name(void *data)
 {
     wh_audio_in_t *ctx = data;
-    return ctx && ctx->name[0] ? ctx->name : "WORMHOLE // AUDIO";
+    return ctx && ctx->name[0] ? ctx->name : "WORMHOLE RECV - Streaming PC";
 }
 
 static void wh_audio_in_defaults(obs_data_t *settings)
@@ -345,11 +350,15 @@ static obs_properties_t *wh_audio_in_properties(void *data)
     (void)data;
     p = obs_properties_add_text(props, "banner",
         "  ______________________________________________________\n"
-        " | W O R M H O L E // A U D I O   I N P U T                |\n"
-        " |  one network channel -> one OBS audio source           |\n"
+        " | W O R M H O L E // R E C V   A U D I O                  |\n"
+        " |  STREAMING PC ONLY - appears in the Audio Mixer         |\n"
         " |____________________________________________________|\n",
         OBS_TEXT_INFO);
     obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);
+
+    p = obs_properties_add_text(props, "warn_role",
+        "Add this source on the STREAMING PC (not the gaming PC). It has its own "
+        "fader in the Audio Mixer once added to the scene.", OBS_TEXT_INFO);
 
     p = obs_properties_add_text(props, "howto",
         "Pick a channel from the gaming PC below. Host and port are filled in "
