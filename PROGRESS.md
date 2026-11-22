@@ -53,6 +53,20 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — All-C proxy captures the live OBS pair (Phase 2)
+
+- Ported the TCP proxy to C (`core/c/proxy.c`, Winsock/POSIX via `select()`),
+  with both-direction capture, delay, deterministic drops and a bandwidth cap.
+  `scripts/run_two_obs.ps1` now accepts `-Harness` to choose the C binary.
+- [exp_008/FINDINGS.md](exp_008/FINDINGS.md) (hypothesis first): C proxy ran
+  the two-OBS session; capture 8,632,459 bytes decoded by the C dissector into
+  790 packets (309 JPEG + 481 WAVE), byte-identical; quality report decoded
+  309 frames at 1280x720. CPU: receiver 0.594 s (0.82 % of 12 logical CPUs),
+  sender 0.844 s (1.17 %) over 6.03 s. MSVC `uint64_t` conversion warning
+  under `/WX` was found and fixed (recorded).
+- The full capture path — proxy → capture → dissect — is now all C on the real
+  Teleport stream. Remaining Rust-only commands are temporary.
+
 ### 2026-11-22 — All-C harness: check/synth/dissect (Phase 2)
 
 - Added `include/wormhole/harness.h`, `core/c/harness.c` (typed TOML-subset

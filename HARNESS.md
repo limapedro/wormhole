@@ -64,8 +64,16 @@ The script locates Visual Studio with `vswhere`, runs `vcvars64.bat`, compiles
 the C protocol library, tests, `capture_writer` and the C harness with
 `cl /W4 /WX`, and runs the C unit tests. `exp_007/FINDINGS.md` verifies that
 the C harness produces the same results as the Rust one on the live OBS
-capture. The C harness currently implements `check`, `synth` and `dissect`;
-proxy, quality, differential and media generation remain temporarily in Rust.
+capture. The C harness currently implements `check`, `synth`, `dissect` and `proxy`
+(including both-direction capture and delay/drop/bandwidth impairments);
+quality, differential, media generation and reference peers remain temporarily
+in Rust. `exp_008/FINDINGS.md` verifies the C proxy against the live OBS pair.
+
+To use the C proxy in the two-OBS workflow:
+
+```bat
+powershell -File scripts\run_two_obs.ps1 -Harness build\c\wormhole-harness.exe
+```
 On Linux/macOS, `sh scripts/build_c.sh` uses the platform C compiler with
 `-Wall -Wextra -Werror`. CI runs both paths on all three platforms.
 `exp_005/FINDINGS.md` records the verified build and C↔Rust wire check.
