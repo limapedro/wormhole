@@ -8,7 +8,7 @@ Newest entries first. Updated on every merge to `main`.
 |---|---|
 | Current phase | Phase 2 — Harness |
 | Overall completion | ~40% (setup + recon + harness foundation; no plugin code yet) |
-| Buildable `main` | Yes (docs + Rust workspace; CI green locally) |
+| Buildable `main` | Yes (all-C core and harness; CI green on Windows/Linux/macOS) |
 | CI | Configured on `windows-latest`, `ubuntu-latest`, `macos-latest` (issue #5 done) |
 | Blocked items | No local C compiler/libobs SDK headers → source build and instrumented build blocked (issues #6/#15, RISKS.md R13). `exp_000` baseline not yet run. |
 | Latest benchmark | **No product benchmark.** Harness self-benchmark only (exp_001, explicitly not a Teleport/Wormhole result) |
@@ -20,7 +20,7 @@ Newest entries first. Updated on every merge to `main`.
 |---|---|---|---|
 | 0 — Setup | `0 - Setup` | 100% | Repo, docs, milestones, labels, issues and CI skeleton (#5) complete |
 | 1 — Recon | `1 - Recon` | 75% | Upstream cloned/pinned, license decision logged, full source-derived protocol and parity checklist done; source build and exp_000 baseline remain blocked/open |
-| 2 — Harness | `2 - Harness` | 65% | `wh-protocol` + typed TOML CLI, dissector, basic proxy, full media matrix + 4-track audio, synth/replay/sink, self-bench, standalone reference peers and capture-level differential tester implemented; exp_001–exp_004 confirmed; instrumented build, pcap timestamps, mock OBS host, live differential driving and full S1–S10 runner pending |
+| 2 — Harness | `2 - Harness` | 75% | All-C harness: typed TOML config, check/synth/dissect/proxy/quality/differential/media/reference peers; two-portable-OBS monitor; exp_001–exp_010 confirmed; instrumented build, pcap timestamps, mock OBS host, live differential driving and full S1–S10 runner pending |
 | 3 — Architecture | `3 - Architecture` | 0% | Starting defaults drafted in `ARCHITECTURE_LOG.md`, unconfirmed |
 | 4 — Parity | `4 - Parity` | 0% | Not started |
 | 5 — Efficiency | `5 - Efficiency` | 0% | Not started |
@@ -52,6 +52,18 @@ are no measured numbers.
 | Network failure behavior | chaos suite | not measured | graceful degradation | Phase 8 |
 
 ## Log
+
+### 2026-11-22 — Rust workspace removed; repository is all C
+
+- Following the user directive and the evidence in `exp_005`–`exp_010`, the
+  Rust workspace (`Cargo.toml`, `Cargo.lock`, `crates/`, `harness/src/`) was
+  deleted. All harness commands now exist in C with parity demonstrated on
+  real Teleport captures.
+- CI now runs only the C build/test matrix (Windows MSVC, Linux and macOS cc)
+  with warnings as errors. HARNESS.md, AGENTS.md, CONTRIBUTING.md,
+  PLATFORMS.md, PERFORMANCE_TARGETS.md and the status dashboard were updated.
+- Historical experiment documents that mention Rust are retained unchanged as
+  evidence of the port; they describe past implementations, not current code.
 
 ### 2026-11-22 — All-C quality and differential commands (Phase 2)
 

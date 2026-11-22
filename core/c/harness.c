@@ -38,6 +38,9 @@ void wh_config_init(wh_config_t *config)
     config->media_height = 720u;
     config->media_frames = 60u;
     config->media_fps = 30u;
+    config->media_sample_rate = 48000u;
+    config->media_audio_seconds = 2u;
+    config->media_tracks = 4u;
     snprintf(config->quality_output, sizeof(config->quality_output), "%s", "exp_results/quality.json");
     config->expected_r = -1;
     config->expected_g = -1;
@@ -132,6 +135,12 @@ static void apply_value(wh_config_t *config, const char *section,
             config->media_fps = (unsigned)strtoul(value, NULL, 10);
         else if (strcmp(key, "quality_output") == 0)
             set_string(config->quality_output, sizeof(config->quality_output), value);
+        else if (strcmp(key, "sample_rate") == 0)
+            config->media_sample_rate = (unsigned)strtoul(value, NULL, 10);
+        else if (strcmp(key, "audio_seconds") == 0)
+            config->media_audio_seconds = (unsigned)strtoul(value, NULL, 10);
+        else if (strcmp(key, "tracks") == 0)
+            config->media_tracks = (unsigned)strtoul(value, NULL, 10);
     } else if (strcmp(section, "quality") == 0) {
         if (strcmp(key, "output") == 0)
             set_string(config->quality_output, sizeof(config->quality_output), value);
@@ -163,6 +172,15 @@ int wh_config_load(wh_config_t *config, const char *path)
     if (file == NULL) {
         fprintf(stderr, "error: cannot open config %s\n", path);
         return 1;
+    }
+    {
+        unsigned char bom[3] = {0, 0, 0};
+        size_t got = fread(bom, 1, 3, file);
+        if (got == 3u && bom[0] == 0xEFu && bom[1] == 0xBBu && bom[2] == 0xBFu) {
+            /* UTF-8 BOM: skip it so the first [section] parses correctly. */
+        } else {
+            rewind(file);
+        }
     }
     while (fgets(line, sizeof(line), file) != NULL) {
         char *text = trim(line);

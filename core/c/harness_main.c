@@ -12,6 +12,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
 
 static void print_help(void)
 {
@@ -23,7 +26,10 @@ static void print_help(void)
     printf("  synth    Write a deterministic capture fixture\n");
     printf("  proxy    Transparent TCP capture/impairment proxy\n");
     printf("  quality  Decode JPEG frames and report image quality\n");
-    printf("  differential  Compare two captures packet by packet\n\n");
+    printf("  differential  Compare two captures packet by packet\n");
+    printf("  media    Generate deterministic I420 video and WAV tracks\n");
+    printf("  ref-sender    Standalone Teleport-protocol reference sender\n");
+    printf("  ref-receiver  Standalone Teleport-protocol reference receiver\n\n");
     printf("Options:\n");
     printf("  --config <path>  Typed TOML configuration file\n");
     printf("  --help           Print this message\n");
@@ -36,6 +42,15 @@ int main(int argc, char **argv)
     const char *command = NULL;
     int i;
 
+#ifdef _WIN32
+    {
+        WSADATA wsa;
+        if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+            fprintf(stderr, "error: WSAStartup failed\n");
+            return 1;
+        }
+    }
+#endif
     wh_config_init(&config);
     for (i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--config") == 0) {
@@ -73,6 +88,12 @@ int main(int argc, char **argv)
         return wh_cmd_quality(&config);
     if (strcmp(command, "differential") == 0)
         return wh_cmd_differential(&config);
+    if (strcmp(command, "media") == 0)
+        return wh_cmd_media(&config);
+    if (strcmp(command, "ref-sender") == 0)
+        return wh_cmd_ref_sender(&config);
+    if (strcmp(command, "ref-receiver") == 0)
+        return wh_cmd_ref_receiver(&config);
 
     fprintf(stderr, "error: unknown command %s\n", command);
     return 1;

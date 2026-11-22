@@ -6,6 +6,21 @@ citing new evidence. Never silently change course. Newest entries first.
 
 ---
 
+## 2026-11-22 — All-C migration complete: Rust workspace removed
+
+- **Decision:** the Rust workspace is deleted from `main`. The repository ships
+  a single language, C, for the protocol core and the entire harness.
+- **Alternatives considered:** keeping Rust as a deprecated secondary harness;
+  rejected because parity was demonstrated for every command and two
+  toolchains would violate the user's directive.
+- **Evidence:** `exp_005` (MSVC C core builds, C↔Rust wire equivalence),
+  `exp_007` (C dissector matches Rust on live capture), `exp_008` (C proxy),
+  `exp_009` (C quality/differential), `exp_010` (C media + reference peers,
+  all C tests pass). CI builds C on Windows, Linux and macOS with warnings as
+  errors.
+- **Consequences:** historical experiments remain as evidence; new work uses
+  only `scripts/build_c.bat` / `scripts/build_c.sh` and the C harness.
+
 ## 2026-11-22 — All-C implementation (user directive; overturns Rust default)
 
 - **Decision:** Wormhole is implemented in **C**, including the plugin core,

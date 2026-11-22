@@ -1,5 +1,6 @@
 stb_image.h v2.34 — public domain image loader
+stb_image_write.h v1.19 — public domain image writer
 Source: https://github.com/nothings/stb
 
-Public domain / MIT dual license as stated in the header of stb_image.h.
-Vendored unmodified for JPEG decoding in the all-C Wormhole harness.
+Public domain / MIT dual license as stated in the headers of these files.
+Vendored unmodified for JPEG decode/encode in the all-C Wormhole harness.

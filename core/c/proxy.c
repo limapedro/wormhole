@@ -154,6 +154,8 @@ static void relay(wh_socket_t client, wh_socket_t upstream, const wh_config_t *c
             int n = recv(client, (char *)buffer, (int)sizeof(buffer), 0);
             if (n <= 0) {
                 client_open = 0;
+                if (upstream_open)
+                    shutdown(upstream, 1);
             } else {
                 drop_state = drop_state * 6364136223846793005ULL + 1ULL;
                 if ((unsigned)((drop_state >> 33) % 100u) >= cfg->drop_percent) {
@@ -178,6 +180,8 @@ static void relay(wh_socket_t client, wh_socket_t upstream, const wh_config_t *c
             int n = recv(upstream, (char *)buffer, (int)sizeof(buffer), 0);
             if (n <= 0) {
                 upstream_open = 0;
+                if (client_open)
+                    shutdown(client, 1);
             } else {
                 record(capture_down, buffer, (size_t)n);
                 if (write_all(client, buffer, (size_t)n) != 0)
