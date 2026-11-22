@@ -6,28 +6,28 @@ Newest entries first. Updated on every merge to `main`.
 
 | Field | Value |
 |---|---|
-| Current phase | Phase 0 — Setup |
-| Overall completion | ~15% (setup in progress; no plugin code yet) |
+| Current phase | Phase 0 — Setup (nearly complete) |
+| Overall completion | ~20% (docs and tracker done; no plugin code yet) |
 | Buildable `main` | Yes (docs only) |
-| CI | Not yet configured (skeleton lands with first code commit) |
-| Blocked items | Go toolchain missing locally (see [RISKS.md](RISKS.md)) |
+| CI | Not yet configured (skeleton lands with first code commit, issue #5) |
+| Blocked items | Go toolchain missing locally (issue #6 / RISKS.md R02); license check pending (issue #8 / R01) |
 | Latest benchmark | None yet — baseline pending `exp_000` |
-| Next three actions | 1. Merge docs PR → create issues/milestones. 2. Start Phase 1 recon (clone upstream, license check, build). 3. Run `exp_000` baseline. |
+| Next three actions | 1. Start Phase 1 recon: install Go, clone upstream, pin commit hash (#6, #7). 2. License check (#8) before any derived code. 3. Run `exp_000` baseline (#11). |
 
 ## Phase completion
 
 | Phase | Milestone | Progress | Notes |
 |---|---|---|---|
-| 0 — Setup | `0 — Setup` | 60% | Repo + initial commit done; docs PR open; issues/milestones pending |
-| 1 — Recon | `1 — Recon` | 5% | `exp_000/HYPOTHESIS.md` written; upstream not yet cloned |
-| 2 — Harness | `2 — Harness` | 0% | Not started |
-| 3 — Architecture | `3 — Architecture` | 0% | Starting defaults drafted in `ARCHITECTURE_LOG.md`, unconfirmed |
-| 4 — Parity | `4 — Parity` | 0% | Not started |
-| 5 — Efficiency | `5 — Efficiency` | 0% | Not started |
-| 6 — Multi-audio | `6 — Multi-audio` | 0% | Not started |
-| 7 — Platforms | `7 — Platforms` | 0% | Not started |
-| 8 — Hardening | `8 — Hardening` | 0% | Not started |
-| 9 — Release | `9 — Release` | 0% | Not started |
+| 0 — Setup | `0 - Setup` | 85% | Repo, docs PR, 10 milestones, 12 labels and 57 issues done; CI skeleton (#5) pending |
+| 1 — Recon | `1 - Recon` | 5% | `exp_000/HYPOTHESIS.md` written; upstream not yet cloned |
+| 2 — Harness | `2 - Harness` | 0% | Not started |
+| 3 — Architecture | `3 - Architecture` | 0% | Starting defaults drafted in `ARCHITECTURE_LOG.md`, unconfirmed |
+| 4 — Parity | `4 - Parity` | 0% | Not started |
+| 5 — Efficiency | `5 - Efficiency` | 0% | Not started |
+| 6 — Multi-audio | `6 - Multi-audio` | 0% | Not started |
+| 7 — Platforms | `7 - Platforms` | 0% | Not started |
+| 8 — Hardening | `8 - Hardening` | 0% | Not started |
+| 9 — Release | `9 - Release` | 0% | Not started |
 
 ## Benchmark dashboard
 
@@ -52,6 +52,19 @@ are no measured numbers.
 | Network failure behavior | chaos suite | not measured | graceful degradation | Phase 8 |
 
 ## Log
+
+### 2026-11-22 — Docs PR merged and issue tracker created (Phase 0)
+
+- PR [#1](https://github.com/limapedro/wormhole/pull/1) (docs-only) merged to
+  `main` as `c7e473f` (squash). It contained only the section-3 planning
+  documents and `exp_000/HYPOTHESIS.md` — no code, satisfying the contract's
+  first-branch rule.
+- Created 12 labels (`protocol`, `video`, `audio`, `multi-audio`, `perf`,
+  `platform:windows`, `platform:linux`, `platform:macos`, `harness`, `docs`,
+  `blocked`, `research`), 10 milestones (`0 - Setup` … `9 - Release`) and
+  57 issues, one per roadmap item. Issues #2–#4 are closed as completed;
+  #5 (CI skeleton) remains open for the first code commit.
+- [ROADMAP.md](ROADMAP.md) now links every phase to its GitHub issues.
 
 ### 2026-11-22 — Repository created (Phase 0)
 
