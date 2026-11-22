@@ -119,8 +119,14 @@ pub struct MediaConfig {
     pub sample_rate: u32,
     /// Audio duration in seconds.
     pub audio_seconds: u32,
-    /// Audio channel count.
+    /// Audio channel count per track.
     pub channels: u16,
+    /// Number of independent audio tracks to generate.
+    pub tracks: u16,
+    /// Generate the standard resolution/fps profile matrix.
+    pub profiles: bool,
+    /// Frames per profile when `profiles` is enabled.
+    pub profile_frames: u32,
 }
 
 impl Default for MediaConfig {
@@ -134,6 +140,9 @@ impl Default for MediaConfig {
             sample_rate: 48_000,
             audio_seconds: 2,
             channels: 2,
+            tracks: 4,
+            profiles: true,
+            profile_frames: 3,
         }
     }
 }

@@ -2,24 +2,77 @@
 //!
 //! Video is raw I420 with color bars and a moving white column, so a frame
 //! counter can be recovered at the receiver. Audio is 16-bit PCM with a tone
-//! that changes frequency once per second, giving a sync marker.
+//! that changes frequency once per second, giving a sync marker. Multiple
+//! tracks use distinct base frequencies so cross-track skew is measurable.
 
 use crate::config::Config;
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const BARS: usize = 8;
 const BAR_Y: [u8; BARS] = [235, 210, 170, 128, 106, 70, 50, 25];
 const BAR_U: [u8; BARS] = [128, 90, 40, 128, 170, 220, 240, 128];
 const BAR_V: [u8; BARS] = [128, 240, 220, 128, 40, 90, 50, 128];
 
+/// Standard scenarios from PERFORMANCE_TARGETS.md: (width, height, fps, name).
+const PROFILES: [(u32, u32, u32, &str); 5] = [
+    (1280, 720, 30, "720p30"),
+    (1920, 1080, 30, "1080p30"),
+    (1920, 1080, 60, "1080p60"),
+    (2560, 1440, 60, "1440p60"),
+    (3840, 2160, 30, "4K30"),
+];
+
 /// Generate the configured media files and a JSON metadata sidecar.
 pub fn run(cfg: &Config) -> Result<(), Box<dyn std::error::Error>> {
     let dir = &cfg.media.output_dir;
     fs::create_dir_all(dir)?;
-    let video_path = generate_video(cfg, dir)?;
-    let audio_path = generate_audio(cfg, dir)?;
+    let mut video_files = Vec::new();
+    let mut audio_files = Vec::new();
+
+    let video = write_video(
+        dir,
+        cfg.media.width,
+        cfg.media.height,
+        cfg.media.frames,
+        "video_main",
+    )?;
+    video_files.push(
+        video
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+    );
+
+    for track in 0..cfg.media.tracks.max(1) {
+        let hz = 440 * (track as u32 + 1);
+        let name = format!("track_{track}_{hz}hz");
+        let audio = write_audio(cfg, dir, hz, &name)?;
+        audio_files.push(
+            audio
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+        );
+    }
+
+    if cfg.media.profiles {
+        for (width, height, _fps, name) in PROFILES {
+            let path = write_video(
+                dir,
+                width,
+                height,
+                cfg.media.profile_frames,
+                &format!("profile_{name}"),
+            )?;
+            video_files.push(
+                path.file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+            );
+        }
+    }
 
     let metadata = serde_json::json!({
         "experiment": cfg.general.experiment,
@@ -32,34 +85,44 @@ pub fn run(cfg: &Config) -> Result<(), Box<dyn std::error::Error>> {
         "sample_rate": cfg.media.sample_rate,
         "channels": cfg.media.channels,
         "audio_seconds": cfg.media.audio_seconds,
-        "tone_hz_even_second": 440,
-        "tone_hz_odd_second": 880,
-        "video_file": video_path.file_name().map(|n| n.to_string_lossy()),
-        "audio_file": audio_path.file_name().map(|n| n.to_string_lossy()),
+        "tracks": cfg.media.tracks.max(1),
+        "track_base_hz": "440*(track_index+1), doubled on odd seconds",
+        "profiles": cfg.media.profiles,
+        "profile_frames": cfg.media.profile_frames,
+        "video_files": video_files,
+        "audio_files": audio_files,
     });
     let meta_path = dir.join("metadata.json");
     fs::write(&meta_path, serde_json::to_string_pretty(&metadata)?)?;
     println!(
-        "media: wrote {} frames to {}",
+        "media: wrote {} frames plus {} profile videos",
         cfg.media.frames,
-        video_path.display()
+        if cfg.media.profiles {
+            PROFILES.len()
+        } else {
+            0
+        }
     );
-    println!("media: wrote audio to {}", audio_path.display());
+    println!("media: wrote {} audio tracks", audio_files.len());
     println!("media: wrote {}", meta_path.display());
     Ok(())
 }
 
-fn generate_video(
-    cfg: &Config,
+/// Write raw I420 frames with color bars and a moving marker column.
+pub fn write_video(
     dir: &Path,
-) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
-    let width = cfg.media.width.max(2) as usize;
-    let height = cfg.media.height.max(2) as usize;
+    width: u32,
+    height: u32,
+    frames: u32,
+    name: &str,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let width = width.max(2) as usize;
+    let height = height.max(2) as usize;
     let even_width = width - (width % 2);
     let even_height = height - (height % 2);
     let path = dir.join(format!(
-        "video_{}x{}_{}frames.i420",
-        even_width, even_height, cfg.media.frames
+        "{}_{}x{}_{}frames.i420",
+        name, even_width, even_height, frames
     ));
     let file = File::create(&path)?;
     let mut writer = BufWriter::new(file);
@@ -70,7 +133,7 @@ fn generate_video(
     let mut u_plane = vec![0_u8; c_size];
     let mut v_plane = vec![0_u8; c_size];
 
-    for frame in 0..cfg.media.frames {
+    for frame in 0..frames {
         let marker = (frame as usize * 8) % even_width;
         for row in 0..even_height {
             for col in 0..even_width {
@@ -97,27 +160,39 @@ fn generate_video(
     Ok(path)
 }
 
-fn generate_audio(
+/// Write one deterministic S16LE WAV track with a per-second sync tone change.
+pub fn write_audio(
     cfg: &Config,
     dir: &Path,
-) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+    base_hz: u32,
+    name: &str,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let sample_rate = cfg.media.sample_rate.max(1);
     let channels = cfg.media.channels.max(1) as usize;
     let frames = sample_rate * cfg.media.audio_seconds;
     let path = dir.join(format!(
-        "audio_{}hz_{}ch_{}s.wav",
-        sample_rate, channels, cfg.media.audio_seconds
+        "{}_{}hz_{}ch_{}s.wav",
+        name, base_hz, channels, cfg.media.audio_seconds
     ));
     let file = File::create(&path)?;
     let mut writer = BufWriter::new(file);
 
     let data_bytes = (frames as usize) * channels * 2;
-    write_wav_header(&mut writer, sample_rate, channels as u16, data_bytes)?;
+    write_wav_header(
+        &mut writer,
+        sample_rate,
+        cfg.media.channels.max(1),
+        data_bytes,
+    )?;
 
     for frame in 0..frames {
         let second = frame / sample_rate;
-        let hz = if second % 2 == 0 { 440.0 } else { 880.0 };
-        let phase = (frame as f64) / (sample_rate as f64) * hz * std::f64::consts::TAU;
+        let hz = if second % 2 == 0 {
+            base_hz
+        } else {
+            base_hz * 2
+        };
+        let phase = (frame as f64) / (sample_rate as f64) * f64::from(hz) * std::f64::consts::TAU;
         let sample = (phase.sin() * 0.2 * 32767.0) as i16;
         for _ in 0..channels {
             writer.write_all(&sample.to_le_bytes())?;
@@ -173,5 +248,12 @@ mod tests {
                 assert!(marker < width);
             }
         }
+    }
+
+    #[test]
+    fn profile_matrix_covers_target_scenarios() {
+        assert_eq!(PROFILES.len(), 5);
+        assert_eq!(PROFILES[0], (1280, 720, 30, "720p30"));
+        assert_eq!(PROFILES[4], (3840, 2160, 30, "4K30"));
     }
 }
