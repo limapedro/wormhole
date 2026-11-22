@@ -53,6 +53,19 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — per-channel audio sources with own thread/connection (exp_019)
+
+- Added `wormhole-audio-output` (gaming PC) and `wormhole-audio` (streaming PC):
+  one OBS audio source per network channel, each with its own thread, bounded
+  queue and TCP connection. Add as many as needed.
+- Video remains one composited signal on port 18090; audio channels use
+  user-chosen ports (default 18091+) and can be assigned to separate OBS
+  recording tracks for editing.
+- Both audio panels got guided cyberpunk UI with discovered-node selection.
+- Fixed NV12 capture crash, missing frame dimensions, refcount bug, silent
+  recordings and periodic audio gaps. See
+  [exp_019/FINDINGS.md](exp_019/FINDINGS.md).
+
 ### 2026-11-22 — v0.2 scene mirror, output-track audio, clean Tools UX (exp_018)
 
 - One composited video signal mirrored into `WH <scene>` scenes; the mirrored

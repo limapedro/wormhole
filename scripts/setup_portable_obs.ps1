@@ -133,13 +133,13 @@ $receiverScene | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $receiver 'co
 $whDir = Join-Path $sender 'config\obs-studio\plugin_config\wormhole'
 New-Item -ItemType Directory -Force -Path $whDir | Out-Null
 [IO.File]::WriteAllText((Join-Path $whDir 'wormhole.json'),
-    '{"enabled":true,"name":"GAMING-PC-NEO","port":18090,"quality":90,"tracks":2}',
+    '{"enabled":true,"mode":"server","name":"GAMING-PC-NEO","port":18090,"quality":90,"tracks":2}',
     (New-Object Text.UTF8Encoding $false))
 # Receiver settings stay disabled: its source is in the scene, not an output.
 $whRxDir = Join-Path $receiver 'config\obs-studio\plugin_config\wormhole'
 New-Item -ItemType Directory -Force -Path $whRxDir | Out-Null
 [IO.File]::WriteAllText((Join-Path $whRxDir 'wormhole.json'),
-    '{"enabled":false,"port":18090,"quality":90}',
+    '{"enabled":false,"mode":"client","port":18090,"quality":90,"client_host":"127.0.0.1","client_port":18090}',
     (New-Object Text.UTF8Encoding $false))
 
 # Replace bundled modules that abort a clean OBS 33 launch with a no-op module.
