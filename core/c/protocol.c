@@ -202,6 +202,38 @@ wh_status_t wh_encode(const wh_packet_t *packet, uint8_t *out, size_t cap,
     return WH_OK;
 }
 
+int wh_header_encode(uint8_t *out, size_t cap, const wh_header_t *header)
+{
+    if (!out || !header || cap < WH_HEADER_LEN)
+        return 0;
+    memcpy(out, header->type, 4);
+    write_u64_le(out + 4, header->timestamp);
+    write_u32_le(out + 12, (uint32_t)header->size);
+    return 1;
+}
+
+int wh_image_header_encode(uint8_t *out, size_t cap, const wh_image_header_t *image)
+{
+    size_t i;
+    if (!out || !image || cap < WH_IMAGE_HEADER_LEN)
+        return 0;
+    for (i = 0; i < 16u; ++i) write_f32_le(out + i * 4u, image->color_matrix[i]);
+    for (i = 0; i < 3u; ++i) write_f32_le(out + 64u + i * 4u, image->color_range_min[i]);
+    for (i = 0; i < 3u; ++i) write_f32_le(out + 76u + i * 4u, image->color_range_max[i]);
+    return 1;
+}
+
+int wh_wave_header_encode(uint8_t *out, size_t cap, const wh_wave_header_t *wave)
+{
+    if (!out || !wave || cap < WH_WAVE_HEADER_LEN)
+        return 0;
+    write_u32_le(out, (uint32_t)wave->format);
+    write_u32_le(out + 4, (uint32_t)wave->sample_rate);
+    write_u32_le(out + 8, (uint32_t)wave->speakers);
+    write_u32_le(out + 12, (uint32_t)wave->frames);
+    return 1;
+}
+
 int wh_image_is_full_range(const wh_image_header_t *image)
 {
     if (image == NULL)

@@ -1,4 +1,4 @@
-# Wormhole - configure two portable OBS instances for Teleport testing.
+# Configure two portable OBS instances for Wormhole only (no Teleport).
 # Copyright (C) 2026 Wormhole contributors
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -16,9 +16,15 @@ foreach ($dir in @($sender, $receiver)) {
     if (-not (Test-Path (Join-Path $dir 'bin\64bit\obs64.exe'))) {
         throw "Portable OBS missing at $dir"
     }
-    New-Item -ItemType Directory -Force -Path (Join-Path $dir 'config\obs-studio\basic\scenes'),
-        (Join-Path $dir 'config\obs-studio\basic\profiles\Wormhole'),
-        (Join-Path $dir 'config\obs-studio\plugin_config\obs-teleport') | Out-Null
+    # Teleport must not be present in these instances.
+    $tp = Join-Path $dir 'obs-plugins\64bit\obs-teleport.dll'
+    if (Test-Path $tp) { Remove-Item $tp -Force }
+    $tpc = Join-Path $dir 'config\obs-studio\plugin_config\obs-teleport'
+    if (Test-Path $tpc) { Remove-Item $tpc -Recurse -Force }
+
+    New-Item -ItemType Directory -Force -Path `
+        (Join-Path $dir 'config\obs-studio\basic\scenes'),
+        (Join-Path $dir 'config\obs-studio\basic\profiles\Wormhole') | Out-Null
     Set-Content (Join-Path $dir 'portable_mode.txt') '' -Encoding UTF8
     $ini = Join-Path $dir 'config\obs-studio\basic\profiles\Wormhole\basic.ini'
     @'
@@ -39,128 +45,107 @@ FPSDen=1
 [Audio]
 SampleRate=48000
 ChannelSetup=2
+
+[Websocket]
+ServerEnabled=true
+ServerPort=4455
+ServerPassword=
 '@ | Set-Content $ini -Encoding UTF8
+    $sentinel = Join-Path $dir 'config\obs-studio\.sentinel'
+    if (Test-Path $sentinel) { Remove-Item $sentinel -Recurse -Force }
+}
+$rxIni = Join-Path $receiver 'config\obs-studio\basic\profiles\Wormhole\basic.ini'
+$rxText = Get-Content $rxIni -Raw
+$rxText = [regex]::Replace($rxText, 'ServerPort=4455', 'ServerPort=4456')
+[IO.File]::WriteAllText($rxIni, $rxText, (New-Object Text.UTF8Encoding $false))
+
+function New-Source([string]$name, [string]$id, $settings, [int]$mixers) {
+    return [ordered]@{
+        prev_ver = 553648128
+        name = $name
+        uuid = [guid]::NewGuid().ToString()
+        id = $id
+        versioned_id = $id
+        settings = $settings
+        mixers = $mixers
+        sync = 0
+        flags = 0
+        volume = 1.0
+        balance = 0.5
+        enabled = $true
+        muted = $false
+        'push-to-mute' = $false
+        'push-to-mute-delay' = 0
+        'push-to-talk' = $false
+        'push-to-talk-delay' = 0
+        hotkeys = [ordered]@{}
+        deinterlace_mode = 0
+        deinterlace_field_order = 0
+        monitoring_type = 0
+        monitoring_enabled = $false
+        private_settings = [ordered]@{}
+    }
 }
 
-# Sender: enable the Teleport output on a fixed TCP port, and add a colour
-# source so video frames are non-trivial.
-$teleportSender = Join-Path $sender 'config\obs-studio\plugin_config\obs-teleport\obs-teleport.json'
-@'
-{
-    "teleport-enabled": true,
-    "identifier": "WormholeSender",
-    "quality": 90,
-    "advanced": true,
-    "port": 18081
+function Add-Item($sceneSource, $source) {
+    $sceneSource.settings.items += [ordered]@{
+        name = $source.name
+        uuid = [guid]::NewGuid().ToString()
+        id = $sceneSource.settings.items.Count + 1
+        source_uuid = $source.uuid
+        visible = $true
+        locked = $false
+        rot = 0.0
+        pos = [ordered]@{ x = 0.0; y = 0.0 }
+        scale = [ordered]@{ x = 1.0; y = 1.0 }
+        align = 5
+        bounds = [ordered]@{ x = 0.0; y = 0.0; type = 0; align = 5 }
+    }
 }
-'@ | Set-Content $teleportSender -Encoding UTF8
 
+# Gaming PC: main monitor (Display Capture) plus three audio inputs.
 $senderScene = Get-Content $template -Raw | ConvertFrom-Json
-$colourUuid = [guid]::NewGuid().ToString()
-$colour = [ordered]@{
-    prev_ver = 553648128
-    name = 'Colour Bars'
-    uuid = $colourUuid
-    id = 'color_source'
-    versioned_id = 'color_source'
-    settings = [ordered]@{ color = 4294901760; width = 1280; height = 720 }
-    mixers = 0
-    sync = 0
-    flags = 0
-    volume = 1.0
-    balance = 0.5
-    enabled = $true
-    muted = $false
-    'push-to-mute' = $false
-    'push-to-mute-delay' = 0
-    'push-to-talk' = $false
-    'push-to-talk-delay' = 0
-    hotkeys = [ordered]@{}
-    deinterlace_mode = 0
-    deinterlace_field_order = 0
-    monitoring_type = 0
-    monitoring_enabled = $false
-    private_settings = [ordered]@{}
-}
-$senderScene.sources += $colour
 $sceneSource = $senderScene.sources | Where-Object { $_.id -eq 'scene' } | Select-Object -First 1
-$sceneSource.settings.id_counter = 1
-$sceneSource.settings.items += [ordered]@{
-    name = 'Colour Bars'
-    uuid = [guid]::NewGuid().ToString()
-    id = 1
-    source_uuid = $colourUuid
-    visible = $true
-    locked = $false
-    rot = 0.0
-    pos = [ordered]@{ x = 0.0; y = 0.0 }
-    scale = [ordered]@{ x = 1.0; y = 1.0 }
-    align = 5
-    bounds = [ordered]@{ x = 0.0; y = 0.0; type = 0; align = 5 }
-}
+$sceneSource.settings.items = @()
+$sceneSource.settings.id_counter = 0
+$display = New-Source 'Main Monitor' 'monitor_capture' ([ordered]@{ monitor = 0; capture_cursor = $true }) 0
+$senderScene.sources += $display
+Add-Item $sceneSource $display
+$audio1 = New-Source 'Desktop Audio' 'wasapi_output_capture' ([ordered]@{ device_id = 'default' }) 255
+$audio2 = New-Source 'Mic One' 'wasapi_input_capture' ([ordered]@{ device_id = 'default' }) 255
+$audio3 = New-Source 'Mic Two' 'wasapi_input_capture' ([ordered]@{ device_id = 'default' }) 255
+foreach ($a in @($audio1, $audio2, $audio3)) { $senderScene.sources += $a; Add-Item $sceneSource $a }
 $senderScene.name = 'WormholeSender'
 $senderScene | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $sender 'config\obs-studio\basic\scenes\WormholeSender.json') -Encoding UTF8
 
-# Receiver: one Teleport source connected manually through the harness proxy.
+# Streaming PC: one Wormhole receiver source, connected to the gaming PC.
 $receiverScene = Get-Content $template -Raw | ConvertFrom-Json
-$teleportUuid = [guid]::NewGuid().ToString()
-$teleportSource = [ordered]@{
-    prev_ver = 553648128
-    name = 'Teleport'
-    uuid = $teleportUuid
-    id = 'teleport-source'
-    versioned_id = 'teleport-source'
-    settings = [ordered]@{
-        teleport_list = ''
-        'manual-ip' = '127.0.0.1:18080'
-        'has-audio-and-video' = $true
-        advanced = $true
-    }
-    mixers = 255
-    sync = 0
-    flags = 0
-    volume = 1.0
-    balance = 0.5
-    enabled = $true
-    muted = $false
-    'push-to-mute' = $false
-    'push-to-mute-delay' = 0
-    'push-to-talk' = $false
-    'push-to-talk-delay' = 0
-    hotkeys = [ordered]@{}
-    deinterlace_mode = 0
-    deinterlace_field_order = 0
-    monitoring_type = 0
-    monitoring_enabled = $false
-    private_settings = [ordered]@{}
-}
-$receiverScene.sources += $teleportSource
 $sceneSource = $receiverScene.sources | Where-Object { $_.id -eq 'scene' } | Select-Object -First 1
-$sceneSource.settings.id_counter = 1
-$sceneSource.settings.items += [ordered]@{
-    name = 'Teleport'
-    uuid = [guid]::NewGuid().ToString()
-    id = 1
-    source_uuid = $teleportUuid
-    visible = $true
-    locked = $false
-    rot = 0.0
-    pos = [ordered]@{ x = 0.0; y = 0.0 }
-    scale = [ordered]@{ x = 1.0; y = 1.0 }
-    align = 5
-    bounds = [ordered]@{ x = 0.0; y = 0.0; type = 0; align = 5 }
-}
+$sceneSource.settings.items = @()
+$sceneSource.settings.id_counter = 0
+$rx = New-Source 'Wormhole' 'wormhole-source' ([ordered]@{ host = '127.0.0.1'; port = 18090 }) 255
+$receiverScene.sources += $rx
+Add-Item $sceneSource $rx
 $receiverScene.name = 'WormholeReceiver'
 $receiverScene | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $receiver 'config\obs-studio\basic\scenes\WormholeReceiver.json') -Encoding UTF8
 
-# Replace bundled modules that abort a clean OBS 33 launch with a no-op
-# module that satisfies libobs' ABI. Deleting them makes OBS fail with
-# "Failed to load core module aja", so replacement is the correct fix.
+# Wormhole sender settings. No "Audio Tracks" option: Wormhole follows OBS.
+$whDir = Join-Path $sender 'config\obs-studio\plugin_config\wormhole'
+New-Item -ItemType Directory -Force -Path $whDir | Out-Null
+[IO.File]::WriteAllText((Join-Path $whDir 'wormhole.json'),
+    '{"enabled":true,"port":18090,"quality":90}',
+    (New-Object Text.UTF8Encoding $false))
+# Receiver settings stay disabled: its source is in the scene, not an output.
+$whRxDir = Join-Path $receiver 'config\obs-studio\plugin_config\wormhole'
+New-Item -ItemType Directory -Force -Path $whRxDir | Out-Null
+[IO.File]::WriteAllText((Join-Path $whRxDir 'wormhole.json'),
+    '{"enabled":false,"port":18090,"quality":90}',
+    (New-Object Text.UTF8Encoding $false))
+
+# Replace bundled modules that abort a clean OBS 33 launch with a no-op module.
 $stubSource = Join-Path $root 'scripts\obs_plugin_stub.c'
 $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-if (-not (Test-Path $vsWhere)) {
-    throw "Visual Studio vswhere.exe not found; cannot build the OBS module stub"
-}
+if (-not (Test-Path $vsWhere)) { throw "Visual Studio vswhere.exe not found" }
 $vsInstall = & $vsWhere -latest -products * -property installationPath | Select-Object -First 1
 $vcvars = Join-Path $vsInstall 'VC\Auxiliary\Build\vcvars64.bat'
 if (-not (Test-Path $vcvars)) { throw "vcvars64.bat not found at $vcvars" }
@@ -169,7 +154,6 @@ $stubDll = Join-Path $root 'build\c\obs_plugin_stub.dll'
 $buildCmd = "`"$vcvars`" && cl /nologo /LD /W4 /O2 /Fo:build\c\obs_plugin_stub.obj /Fe:build\c\obs_plugin_stub.dll `"$stubSource`""
 cmd.exe /c $buildCmd | Out-Null
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $stubDll)) { throw "Failed to build OBS module stub" }
-
 $failingModules = @(
     'core\aja\aja.dll',
     'core\aja-output-ui\aja-output-ui.dll',
@@ -184,22 +168,5 @@ foreach ($dir in @($sender, $receiver)) {
         $target = Join-Path $dir $module
         if (Test-Path $target) { Copy-Item $stubDll $target -Force }
     }
-
-    # obs-websocket 5 settings live in plugin_config JSON, not basic.ini.
-    $wsDir = Join-Path $dir 'config\obs-studio\plugin_config\obs-websocket'
-    New-Item -ItemType Directory -Force -Path $wsDir | Out-Null
-    $port = if ($dir -eq $sender) { 4455 } else { 4456 }
-    $wsConfig = @{
-        first_load = $false
-        server_enabled = $true
-        server_port = $port
-        alerts_enabled = $false
-        auth_required = $false
-        server_password = ''
-    } | ConvertTo-Json -Compress
-    [IO.File]::WriteAllText((Join-Path $wsDir 'config.json'), $wsConfig, (New-Object Text.UTF8Encoding $false))
 }
-
-Write-Host "Configured sender: $sender"
-Write-Host "Configured receiver: $receiver"
-Write-Host "Stubbed $($failingModules.Count) failing modules per instance and enabled OBS WebSocket"
+Write-Host "Configured Wormhole-only sender and receiver"

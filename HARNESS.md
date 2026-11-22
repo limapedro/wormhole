@@ -98,20 +98,29 @@ scripts. Only structured results and findings are committed.
 
 ## Building the Wormhole plugin (Windows)
 
-The plugin is C and builds against the exact OBS 33.0.0 headers:
+The plugin is all C and builds against the exact OBS 33.0.0 headers. The
+required SDK artifacts live in git-ignored `third_party/`:
 
 ```
 powershell -File scripts/make_obs_import_lib.ps1
+powershell -File scripts/make_obs_frontend_lib.ps1
 cmd /c scripts\build_plugin.bat
 ```
 
-The first script downloads/extracts the OBS 33.0.0 source into git-ignored
-`third_party/obs-sdk`, creates the empty `obsconfig.h`, parses `obs.dll`
-exports and generates `obs.lib`. The second compiles
-`plugin/src/plugin.c` with MSVC `/W4 /WX /wd4201` into
-`build/plugin/wormhole.dll`. Copy that DLL into a portable OBS plugin directory
-and the log must show `[wormhole] version 0.1.0`. See
-[exp_013](exp_013/FINDINGS.md).
+The first two scripts extract the OBS source headers, create the empty
+`obsconfig.h`, and generate `obs.lib` and `obs-frontend-api.lib` from the
+installed DLL export tables. libjpeg-turbo 3.2.0 is built with NASM and
+`WITH_CRT_DLL=TRUE` so it matches the plugin's `/MD` runtime. The build compiles
+`plugin/src/*.c` plus the shared protocol core with MSVC `/W4 /WX /wd4201`
+(the only suppressed warning is a nameless-union warning in libobs headers)
+into `build/plugin/wormhole.dll`.
+
+The plugin registers `wormhole-source`, `wormhole-output` and a Tools menu
+item (Teleport-style). It uses SIMD JPEG, v2 negotiation, dynamic audio track
+descriptors from OBS's own mixers, and a bounded queue so OBS threads never
+block on network I/O. `scripts/setup_portable_obs.ps1` configures the two
+portable OBS instances with Teleport removed. See
+[exp_013](exp_013/FINDINGS.md) and [exp_014](exp_014/FINDINGS.md).
 
 ## Building original Teleport on Windows (Phase 1 attempt — blocked)
 
