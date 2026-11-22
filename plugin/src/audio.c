@@ -337,7 +337,8 @@ static obs_properties_t *wh_audio_in_properties(void *data)
         char key[192];
         char label[256];
         snprintf(key, sizeof(key), "%s|%u", channels[i].host, (unsigned)channels[i].port);
-        snprintf(label, sizeof(label), "%s", channels[i].name);
+        snprintf(label, sizeof(label), "%s  (port %u)", channels[i].name,
+                 (unsigned)channels[i].port);
         obs_property_list_add_string(p, label, key);
     }
     obs_property_set_modified_callback2(p, wh_audio_channel_changed, NULL);

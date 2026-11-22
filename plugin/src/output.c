@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define WH_MAX_QUEUE 120
 #define WH_MAX_AUDIO_QUEUE 240
@@ -77,6 +78,7 @@ typedef struct wh_output {
     int desc_sent[6];
     uint32_t sequence;
     uint64_t dropped;
+    char last_channels[16 * 1024];
 } wh_output_t;
 
 static const char *wh_output_name(void *type_data)
@@ -223,32 +225,34 @@ static bool wh_collect_channel(void *param, obs_source_t *source)
     return true;
 }
 
-static void wh_send_channels(wh_socket_t client, wh_output_t *ctx)
+/* Advertise the current audio channel list. Called on connect and
+ * periodically, so newly added Wormhole Audio Outputs appear on the receiver. */
+static void wh_send_channels(wh_socket_t client, wh_output_t *ctx, bool force)
 {
     char *text = bzalloc(16u * 1024u);
     uint8_t *frame = malloc(WH_FRAME_SIZE);
     size_t n;
+    bool ok;
     if (!text || !frame) {
         bfree(text);
         free(frame);
         return;
     }
     obs_enum_sources(wh_collect_channel, text);
+    if (!force && strcmp(text, ctx->last_channels) == 0)
+        goto done;
     n = wh2_build_text(frame, WH_FRAME_SIZE, WH2_MSG_AUDIO_CHANNELS,
                        ++ctx->sequence, 0, text);
     if (n) {
         wh_mutex_lock(&ctx->send_mutex);
-        wh_net_send(client, frame, n);
+        ok = wh_net_send(client, frame, n);
         wh_mutex_unlock(&ctx->send_mutex);
-        {
-            int lines = 1;
-            size_t k;
-            for (k = 0; k < strlen(text); ++k)
-                if (text[k] == '\n') ++lines;
-            blog(LOG_INFO, "[wormhole] advertised %d audio channel(s)",
-                 text[0] ? lines : 0);
+        if (ok) {
+            snprintf(ctx->last_channels, sizeof(ctx->last_channels), "%s", text);
+            blog(LOG_INFO, "[wormhole] audio channel list refreshed");
         }
     }
+done:
     bfree(text);
     free(frame);
 }
@@ -339,7 +343,7 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
     ctx->negotiated = negotiated;
     blog(LOG_INFO, "[wormhole] v2 negotiated");
     if (negotiated)
-        wh_send_channels(client, ctx);
+        wh_send_channels(client, ctx, true);
 
     while (ctx->running) {
         wh_video_item_t *video = NULL;
@@ -376,6 +380,14 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
             wh_mutex_unlock(&ctx->video_mutex);
         } else {
             wh_sleep_ms(1);
+        }
+        {
+            static time_t last_refresh;
+            time_t now = time(NULL);
+            if (now != last_refresh) {
+                last_refresh = now;
+                wh_send_channels(client, ctx, false);
+            }
         }
     }
     free(frame);

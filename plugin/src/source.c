@@ -192,6 +192,13 @@ static WH_THREAD_API wh_video_thread(WH_THREAD_ARG arg)
     return WH_THREAD_RET;
 }
 
+static void wh_refresh_props_task(void *param)
+{
+    obs_source_t *source = param;
+    obs_source_update_properties(source);
+    obs_source_release(source);
+}
+
 static WH_THREAD_API wh_reader_thread(WH_THREAD_ARG arg)
 {
     wh_source_t *ctx = arg;
@@ -250,6 +257,9 @@ static WH_THREAD_API wh_reader_thread(WH_THREAD_ARG arg)
                     wh_channel_t list[16];
                     blog(LOG_INFO, "[wormhole] learned %zu remote audio channel(s)",
                          wh_channels_list(list, 16));
+                    obs_source_t *src = obs_source_get_ref(ctx->source);
+                    if (src)
+                        obs_queue_task(OBS_TASK_UI, wh_refresh_props_task, src, false);
                 }
             }
             continue;
