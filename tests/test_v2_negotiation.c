@@ -88,7 +88,7 @@ int main(void)
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(18881);
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    assert(inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr) == 1);
     assert(bind(listener, (struct sockaddr *)&addr, sizeof(addr)) == 0);
     assert(listen(listener, 1) == 0);
 
