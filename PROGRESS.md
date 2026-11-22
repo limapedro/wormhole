@@ -53,6 +53,24 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — Real 60-second 1080p60 NVENC recording accepted (exp_012)
+
+- Configured the streaming PC for Advanced recording: `obs_nvenc_h264_tex`,
+  CBR 8000 kbit/s, preset **p4**, profile high, MP4, 1920x1080, AAC 160 kbit/s.
+- Verified the gaming PC Display Capture source is the **primary monitor**
+  (`monitor=0`, `capture_cursor=true`) and active; sender 2560x1440 → 1920x1080
+  at 60 fps, receiver 1920x1080 at 60 fps.
+- Recorded for a full 60 s through OBS-MCP. Final file
+  `exp_results/recordings/2026-11-22 03-51-46.mp4` (git-ignored): **59.983 s**,
+  H.264 High, 1920x1080, 60 fps, video bitrate **8,009,512 bit/s**,
+  AAC 159,888 bit/s, 61.3 MB. OBS log confirms NVENC CBR 8000, preset p4,
+  high profile, 1920x1080.
+- CPU: sender 3.97–5.47 %, receiver 1.82–4.95 %; receiver `GetStats` 60 fps,
+  4.42 % CPU, 425.7 MB. Details in [exp_012/FINDINGS.md](exp_012/FINDINGS.md).
+- Negative results recorded: two earlier takes were 57.9 s and 64.0 s (sampling
+  inside the window), wrong `GetInputSettings` field name, and an empty wire
+  capture for the final run.
+
 ### 2026-11-22 — 1440p gaming PC → 1080p streaming PC workflow (exp_011)
 
 - Configured the sender profile for 2560x1440 base → 1920x1080 output at 60
