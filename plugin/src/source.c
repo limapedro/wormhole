@@ -3,6 +3,7 @@
 #if defined(_MSC_VER)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+#include "wormhole/channels.h"
 #include "wormhole/discovery.h"
 #include "wormhole/transport.h"
 #include "wormhole/media.h"
@@ -239,6 +240,18 @@ static WH_THREAD_API wh_reader_thread(WH_THREAD_ARG arg)
             wh2_hello_ack_t ack;
             if (wh2_parse_hello_ack(ctx->frame, len, &ack) == WH2_PARSE_OK)
                 blog(LOG_INFO, "[wormhole] video negotiated with '%s'", ack.sender_name);
+            continue;
+        }
+        if (header.type == WH2_MSG_AUDIO_CHANNELS) {
+            char text[16 * 1024];
+            if (wh2_parse_text(ctx->frame, len, text, sizeof(text))) {
+                wh_channels_set(ctx->host, text);
+                {
+                    wh_channel_t list[16];
+                    blog(LOG_INFO, "[wormhole] learned %zu remote audio channel(s)",
+                         wh_channels_list(list, 16));
+                }
+            }
             continue;
         }
         if (header.type != WH2_MSG_VIDEO)

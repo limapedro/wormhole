@@ -8,6 +8,7 @@
 #if defined(_MSC_VER)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+#include "wormhole/channels.h"
 #include "wormhole/discovery.h"
 #include "wormhole/transport.h"
 #include "wormhole/protocol_v2.h"
@@ -314,12 +315,31 @@ static void wh_audio_in_defaults(obs_data_t *settings)
     obs_data_set_default_int(settings, "port", 18091);
 }
 
+/* Selecting a channel fills in host/port from the video connection. */
+static bool wh_audio_channel_changed(void *priv, obs_properties_t *props,
+                                     obs_property_t *property, obs_data_t *settings)
+{
+    const char *value = obs_data_get_string(settings, "channel");
+    (void)priv; (void)property;
+    if (value && *value) {
+        char host[96] = "";
+        unsigned port = 0;
+        if (sscanf(value, "%95[^|]|%u", host, &port) == 2 && port) {
+            obs_data_set_string(settings, "host", host);
+            obs_data_set_int(settings, "port", (int)port);
+        }
+    }
+    obs_property_set_visible(obs_properties_get(props, "host"), false);
+    obs_property_set_visible(obs_properties_get(props, "port"), false);
+    return true;
+}
+
 static obs_properties_t *wh_audio_in_properties(void *data)
 {
     obs_properties_t *props = obs_properties_create();
     obs_property_t *p;
-    wh_peer_t found[WH_MAX_PEERS];
-    size_t count = wh_discovery_peers(found, WH_MAX_PEERS);
+    wh_channel_t channels[16];
+    size_t count = wh_channels_list(channels, 16);
     size_t i;
 
     (void)data;
@@ -332,22 +352,25 @@ static obs_properties_t *wh_audio_in_properties(void *data)
     obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);
 
     p = obs_properties_add_text(props, "howto",
-        "Pick a discovered gaming PC below, or type its IP and the channel's port.\n"
-        "Then assign OBS recording tracks in Advanced Audio Properties.",
+        "Pick a channel from the gaming PC below. Host and port are filled in "
+        "automatically from the Wormhole video connection.",
         OBS_TEXT_INFO);
 
-    p = obs_properties_add_list(props, "peer", "> DISCOVERED GAME PCs",
+    p = obs_properties_add_list(props, "channel", "> AUDIO SOURCE ON GAMING PC",
                                 OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     obs_property_list_add_string(p, "- MANUAL ENTRY -", "");
     for (i = 0; i < count; ++i) {
-        char key[160];
+        char key[192];
         char label[256];
-        snprintf(key, sizeof(key), "%s:%u", found[i].ip, (unsigned)found[i].port);
-        snprintf(label, sizeof(label), "%s  /  %s", found[i].name, key);
+        snprintf(key, sizeof(key), "%s|%u", channels[i].host, (unsigned)channels[i].port);
+        snprintf(label, sizeof(label), "%s  (%s:%u)", channels[i].name,
+                 channels[i].host, (unsigned)channels[i].port);
         obs_property_list_add_string(p, label, key);
     }
-    obs_properties_add_text(props, "host", "> HOST / IP", OBS_TEXT_DEFAULT);
-    obs_properties_add_int(props, "port", "> CHANNEL TCP PORT", 1024, 65535, 1);
+    obs_property_set_modified_callback2(p, wh_audio_channel_changed, NULL);
+
+    p = obs_properties_add_text(props, "host", "> HOST / IP (auto)", OBS_TEXT_DEFAULT);
+    obs_properties_add_int(props, "port", "> TCP PORT (auto)", 1024, 65535, 1);
     return props;
 }
 

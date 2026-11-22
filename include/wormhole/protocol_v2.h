@@ -28,7 +28,8 @@ typedef enum {
     WH2_MSG_GOODBYE = 19,
     WH2_MSG_SCENE_REQUEST = 20,
     WH2_MSG_SCENE_MANIFEST = 21,
-    WH2_MSG_CONTROL = 22
+    WH2_MSG_CONTROL = 22,
+    WH2_MSG_AUDIO_CHANNELS = 23
 } wh2_message_type_t;
 
 typedef struct {

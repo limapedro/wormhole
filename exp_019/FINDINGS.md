@@ -43,6 +43,17 @@ recording `C:\Users\multi\Videos\2026-11-22 08-19-20.mp4` analysed with ffmpeg.
 - Periodic audio dropouts were caused by forwarding sender timestamps; using
   receive-clock timestamps (`os_gettime_ns()`) removed the gaps.
 
+## Channel dropdown (follow-up)
+
+The sender advertises its `wormhole-audio-output` sources (`name|port` lines in
+a `WH2_MSG_AUDIO_CHANNELS` frame) over the video connection. The receiver's
+video source learns them together with the connected host, and the
+`wormhole-audio` properties show a `> AUDIO SOURCE ON GAMING PC` combobox —
+e.g. `TONE (127.0.0.1:18091)`. Selecting an entry fills host/port automatically,
+so no manual port entry is needed. Verified with
+`exp_results/wormhole-channels.jsonl`: the list property returned
+`TONE  (127.0.0.1:18091)` and the recording had the tone at -25.5 dB.
+
 ## Limitations
 
 - Each channel needs its own unique port; no automatic port negotiation.

@@ -200,6 +200,49 @@ static WH_THREAD_API wh_audio_thread(WH_THREAD_ARG arg)
 }
 
 /* Network worker: accept, negotiate, then send video + control frames. */
+/* Build "name|port\n" lines from this PC's Wormhole Audio Output sources so
+ * receivers can offer them in a dropdown instead of asking for a port. */
+static bool wh_collect_channel(void *param, obs_source_t *source)
+{
+    char *buf = param;
+    const char *id = obs_source_get_id(source);
+    if (!id || strcmp(id, "wormhole-audio-output") != 0)
+        return true;
+    {
+        obs_data_t *settings = obs_source_get_settings(source);
+        const char *target = obs_data_get_string(settings, "target");
+        int port = (int)obs_data_get_int(settings, "port");
+        size_t at = strlen(buf);
+        if (target && *target && port && at + 512 < 16u * 1024u)
+            snprintf(buf + at, 16u * 1024u - at, "%s|%d\n", target, port);
+        obs_data_release(settings);
+    }
+    return true;
+}
+
+static void wh_send_channels(wh_socket_t client, wh_output_t *ctx)
+{
+    char *text = bzalloc(16u * 1024u);
+    uint8_t *frame = malloc(WH_FRAME_SIZE);
+    size_t n;
+    if (!text || !frame) {
+        bfree(text);
+        free(frame);
+        return;
+    }
+    obs_enum_sources(wh_collect_channel, text);
+    n = wh2_build_text(frame, WH_FRAME_SIZE, WH2_MSG_AUDIO_CHANNELS,
+                       ++ctx->sequence, 0, text);
+    if (n) {
+        wh_mutex_lock(&ctx->send_mutex);
+        wh_net_send(client, frame, n);
+        wh_mutex_unlock(&ctx->send_mutex);
+        blog(LOG_INFO, "[wormhole] advertised %zu audio channel(s)", strlen(text));
+    }
+    bfree(text);
+    free(frame);
+}
+
 static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
 {
     wh_output_t *ctx = arg;
@@ -241,7 +284,9 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
         wh_mutex_unlock(&ctx->send_mutex);
     }
     ctx->negotiated = negotiated;
-    blog(LOG_INFO, "[wormhole] v2 negotiated, sending %d audio track(s)", ctx->tracks);
+    blog(LOG_INFO, "[wormhole] v2 negotiated");
+    if (negotiated)
+        wh_send_channels(client, ctx);
 
     while (ctx->running) {
         wh_video_item_t *video = NULL;
