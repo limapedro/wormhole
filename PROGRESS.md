@@ -53,6 +53,24 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — All-C pivot: Visual Studio core builds and is wire-compatible
+
+- User directed an all-C implementation; previous Rust architecture default
+  overturned in [ARCHITECTURE_LOG.md](ARCHITECTURE_LOG.md) with the directive,
+  toolchain evidence and consequences recorded.
+- Added `include/wormhole/protocol.h`, `core/c/protocol.c`, `tests/test_protocol.c`
+  and `tests/capture_writer.c`; `scripts/build_c.bat` uses `vswhere` +
+  `vcvars64.bat` and `cl /W4 /WX`; `scripts/build_c.sh` covers POSIX. Added a
+  `c-core` CI job on Windows/Linux/macOS.
+- [exp_005/FINDINGS.md](exp_005/FINDINGS.md) (hypothesis first): MSVC 14.42
+  compiled both targets with **zero warnings**; all C tests passed; a
+  C-generated 8-packet / 640-byte capture was decoded and re-encoded
+  byte-identically by the Rust dissector (SHA-256 `C782F8EE…9281`). First
+  formal run failed on MSVC's `fopen` deprecation under `/WX`; fixed and
+  recorded.
+- Rust harness remains temporarily; migration to C is the next architecture
+  task. No performance claims made.
+
 ### 2026-11-22 — Differential capture comparison (Phase 2)
 
 - Added a `differential` command that decodes two captures and compares

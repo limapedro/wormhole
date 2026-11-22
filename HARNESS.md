@@ -48,6 +48,20 @@ are positional.
 
 ## Running (implemented commands)
 
+### All-C core (Visual Studio / MSVC on Windows)
+
+```bat
+cmd /c scripts\build_c.bat
+```
+
+The script locates Visual Studio with `vswhere`, runs `vcvars64.bat`, compiles
+with `cl /W4 /WX`, runs the C unit tests and builds `capture_writer.exe`.
+On Linux/macOS, `sh scripts/build_c.sh` uses the platform C compiler with
+`-Wall -Wextra -Werror`. CI runs both paths on all three platforms.
+`exp_005/FINDINGS.md` records the verified build and C↔Rust wire check.
+
+### Harness (temporary Rust implementation, being ported to C)
+
 ```bash
 cargo test --workspace --all-targets
 cargo fmt --all -- --check

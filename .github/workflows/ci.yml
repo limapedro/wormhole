@@ -39,3 +39,21 @@ jobs:
 
       - name: Release build
         run: cargo build --workspace --release
+
+  c-core:
+    name: all-C core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and test C with MSVC
+        if: runner.os == 'Windows'
+        run: cmd /c scripts\build_c.bat
+
+      - name: Build and test C with cc
+        if: runner.os != 'Windows'
+        run: sh scripts/build_c.sh

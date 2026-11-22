@@ -6,6 +6,36 @@ citing new evidence. Never silently change course. Newest entries first.
 
 ---
 
+## 2026-11-22 — All-C implementation (user directive; overturns Rust default)
+
+- **Decision:** Wormhole is implemented in **C**, including the plugin core,
+  the protocol/framing library and the harness. The Rust starting default in
+  the master prompt is **overturned by explicit user direction**: "I wanted
+  all in C." Visual Studio's MSVC compiler is available and will be used to
+  compile and test the C code on Windows. Existing Rust harness code is kept
+  temporarily only as a reference while its functionality is ported to C; it
+  is removed from `main` once the C harness covers the same commands.
+- **Alternatives considered:**
+  - Thin C libobs layer + Rust core (the prompt's starting default) —
+    rejected by the user; it adds a second language, toolchain and ABI
+    boundary that the user does not want.
+  - Pure C — chosen: libobs is a C API, the wire format is fixed-layout
+    little-endian C structs, and MSVC/VS provides a first-class compiler and
+    debugger. Nothing in the recon requires Rust.
+  - C++ — rejected; user asked for C specifically.
+- **Evidence:** user directive in this session (authoritative for this
+  decision); `vswhere` reports Visual Studio Community 2026 at
+  `C:\Program Files\Microsoft Visual Studio\18\Community`; `cl.exe` 14.42
+  found at `VC\Tools\MSVC\14.42.34433\bin\Hostx64\x64\cl.exe`;
+  `VC\Auxiliary\Build\vcvars64.bat` present. VERIFIED by compiling C code with
+  MSVC in this branch (see `scripts/build_c.bat` output and
+  `exp_005/FINDINGS.md`).
+- **Consequences:** new `core/c/` C library and `tests/` C tests; MSVC build
+  script; CI must build C on all three platforms (MSVC on Windows, clang/gcc
+  on Linux/macOS). Performance claims still require benchmarks, and the
+  never-block-OBS-threads rule remains unchanged. The reverse-engineered
+  protocol and GPL-2.0-or-later license are unaffected.
+
 ## 2026-11-22 — License decision: Wormhole is GPL-2.0-or-later
 
 - **Decision:** Wormhole is licensed **GNU GPL version 2, or (at our option)
