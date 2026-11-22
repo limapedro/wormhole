@@ -5,7 +5,8 @@
 # --- Rust -------------------------------------------------------------------
 /target/
 **/target/
-Cargo.lock
+# Cargo.lock is committed: the workspace ships a binary (the harness) and
+# reproducible builds matter more than library-style flexibility.
 *.rlib
 *.rmeta
 *.dylib
@@ -126,6 +127,7 @@ third_party/
 reference/
 
 # --- Experiment scratch data (keep HYPOTHESIS/FINDINGS, ignore raw output) ---
+exp_results/
 exp_*/*.csv
 exp_*/*.json
 exp_*/*.log

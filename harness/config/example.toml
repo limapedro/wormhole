@@ -1,0 +1,35 @@
+# Wormhole harness configuration. Tools take only --config <path>.
+# Every value below is also the typed default; this file shows them explicitly.
+
+[general]
+experiment = "exp_001"
+output_dir = "exp_results"
+
+[dissect]
+input = "exp_results/capture.bin"
+output = "exp_results/dissection.json"
+max_payload_bytes = 67108864
+
+[proxy]
+listen = "127.0.0.1:18080"
+target = "127.0.0.1:18081"
+capture = "exp_results/capture.bin"
+delay_ms = 0
+drop_percent = 0
+bandwidth_bytes_per_sec = 0
+chunk_bytes = 65536
+
+[media]
+output_dir = "exp_results/media"
+width = 1280
+height = 720
+frames = 60
+fps = 30
+sample_rate = 48000
+audio_seconds = 2
+channels = 2
+
+[bench]
+packets = 1000
+payload_bytes = 4096
+output = "exp_results/dissector-bench.csv"

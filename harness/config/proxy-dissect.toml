@@ -1,0 +1,14 @@
+# Dissect the capture produced by the proxy test.
+
+[general]
+experiment = "exp_001"
+output_dir = "exp_results"
+
+[dissect]
+input = "exp_results/proxy-capture.bin"
+output = "exp_results/proxy-dissection.json"
+
+[proxy]
+listen = "127.0.0.1:18080"
+target = "127.0.0.1:18081"
+capture = "exp_results/proxy-capture.bin"

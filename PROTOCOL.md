@@ -328,6 +328,7 @@ sequenceDiagram
 | peerdiscovery v1.7.6 | `third_party/peerdiscovery/`, `e0ee252…` |
 | OBS enum definitions | obsproject/obs-studio tag 33.0.0, `libobs/media-io/{video,audio}-io.h`, fetched 2026-11-22 |
 | Build procedure and blockers | [HARNESS.md](HARNESS.md) |
+| Harness decode/proxy fidelity (synthetic fixture) | [exp_001/FINDINGS.md](exp_001/FINDINGS.md) — round-trip byte-identical, proxy lossless |
 
 ---
 
