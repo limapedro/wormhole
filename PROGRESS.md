@@ -20,7 +20,7 @@ Newest entries first. Updated on every merge to `main`.
 |---|---|---|---|
 | 0 — Setup | `0 - Setup` | 100% | Repo, docs, milestones, labels, issues and CI skeleton (#5) complete |
 | 1 — Recon | `1 - Recon` | 75% | Upstream cloned/pinned, license decision logged, full source-derived protocol and parity checklist done; source build and exp_000 baseline remain blocked/open |
-| 2 — Harness | `2 - Harness` | 50% | `wh-protocol` + typed TOML CLI, dissector, basic proxy, media/synth/replay/sink, self-bench and standalone reference peers implemented; exp_001 and exp_002 confirmed; instrumented build, pcap timestamps, multi-track media, differential tester, mock OBS host and full S1–S10 runner pending |
+| 2 — Harness | `2 - Harness` | 60% | `wh-protocol` + typed TOML CLI, dissector, basic proxy, full media matrix + 4-track audio, synth/replay/sink, self-bench and standalone reference peers implemented; exp_001–exp_003 confirmed; instrumented build, pcap timestamps, differential tester, mock OBS host and full S1–S10 runner pending |
 | 3 — Architecture | `3 - Architecture` | 0% | Starting defaults drafted in `ARCHITECTURE_LOG.md`, unconfirmed |
 | 4 — Parity | `4 - Parity` | 0% | Not started |
 | 5 — Efficiency | `5 - Efficiency` | 0% | Not started |
@@ -52,6 +52,16 @@ are no measured numbers.
 | Network failure behavior | chaos suite | not measured | graceful degradation | Phase 8 |
 
 ## Log
+
+### 2026-11-22 — Full media matrix and multi-track generator (Phase 2)
+
+- Extended `media` to produce the five `PERFORMANCE_TARGETS.md` profiles
+  (720p30, 1080p30, 1080p60, 1440p60, 4K30) and four independent WAV tracks
+  (440/880/1320/1760 Hz with per-second sync markers).
+- [exp_003/FINDINGS.md](exp_003/FINDINGS.md) (hypothesis written first): 11
+  files per run, all I420 sizes matched `w*h*1.5*frames`, all WAV headers
+  valid, and every file byte-identical across two runs. 17 tests pass;
+  clippy/fmt clean after fixing two unused-variable warnings.
 
 ### 2026-11-22 — Reference sender/receiver implemented (Phase 2)
 

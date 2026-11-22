@@ -28,6 +28,9 @@ fps = 30
 sample_rate = 48000
 audio_seconds = 2
 channels = 2
+tracks = 4
+profiles = true
+profile_frames = 3
 
 [bench]
 packets = 1000

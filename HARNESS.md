@@ -37,7 +37,7 @@ are positional.
 | Wire-format library (`wh-protocol`) | **Implemented** | Strict bounded decode/encode of the 16-byte header, 88-byte `ImageHeader` and 16-byte `WaveHeader`; unknown types preserved; 10 unit tests |
 | Capture/impairment proxy | **Implemented (basic)** | Records sender→receiver bytes to a raw capture; injects fixed delay, deterministic drop percentage and an approximate bandwidth cap. **pcap export and high-resolution per-byte timestamps are not yet implemented** |
 | Protocol dissector | **Implemented** | Decodes a capture to JSON summaries and asserts byte-identical re-encode |
-| Synthetic media generator | **Implemented (basic)** | Deterministic I420 color bars with moving marker; S16LE WAV with a 440/880 Hz sync tone. Multiple resolutions and multi-track are not yet implemented |
+| Synthetic media generator | **Implemented** | Deterministic I420 color bars with moving marker across the full 720p30/1080p30/1080p60/1440p60/4K30 matrix, plus 4 independent S16LE WAV tracks with distinct sync tones; validated in [exp_003](exp_003/FINDINGS.md) |
 | Capture fixture, replay and sink | **Implemented** | Produce and replay deterministic Teleport-compatible byte streams for unattended tests |
 | Dissector self-benchmark | **Implemented** | Measures harness encode/decode throughput only — explicitly **not** a Teleport or Wormhole benchmark |
 | Instrumented upstream build | Blocked | Patched Teleport with tracing: frame timings, allocations, GC pauses, cgo calls, queue depths; kept separate from Wormhole code. See build blockers below |
