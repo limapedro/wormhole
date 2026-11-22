@@ -126,6 +126,7 @@ third_party/
 reference/
 
 # --- Experiment scratch data (keep HYPOTHESIS/FINDINGS, ignore raw output) ---
+exp_results/
 exp_*/*.csv
 exp_*/*.json
 exp_*/*.log
