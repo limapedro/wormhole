@@ -109,7 +109,8 @@ int main(void)
     assert(hello.track_count == 3);
     printf("negotiation: HELLO from '%s' with %u tracks\n", hello.name, hello.track_count);
     n = wh2_build_hello_ack(out, sizeof(out), 2, 101,
-                            hello.capabilities & (WH2_CAP_MULTI_AUDIO | WH2_CAP_CLOCK_SYNC));
+                            hello.capabilities & (WH2_CAP_MULTI_AUDIO | WH2_CAP_CLOCK_SYNC),
+                            "wormhole-gaming-pc");
     assert(n && send_all(client, out, n));
 
     assert(recv_frame(server, in, sizeof(in), &got));

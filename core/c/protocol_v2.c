@@ -144,13 +144,17 @@ size_t wh2_build_hello(uint8_t *out, size_t cap, uint32_t sequence,
 }
 
 size_t wh2_build_hello_ack(uint8_t *out, size_t cap, uint32_t sequence,
-                           uint64_t timestamp_ns, uint32_t capabilities)
+                           uint64_t timestamp_ns, uint32_t capabilities,
+                           const char *sender_name)
 {
     size_t at = begin_frame(out, cap, WH2_MSG_HELLO_ACK, sequence, timestamp_ns);
     if (!at || at + 2u + 4u > cap)
         return 0;
     put_u16(out + at, WH2_VERSION); at += 2;
     put_u32(out + at, capabilities); at += 4;
+    at = put_string(out, cap, at, sender_name);
+    if (!at)
+        return 0;
     put_u32(out + 8, (uint32_t)at);
     return at;
 }
@@ -263,7 +267,11 @@ wh2_parse_status_t wh2_parse_hello_ack(const uint8_t *data, size_t len, wh2_hell
     if (at + 6u > len)
         return WH2_PARSE_TRUNCATED;
     out->accepted_version = get_u16(data + at); at += 2;
-    out->capabilities = get_u32(data + at);
+    out->capabilities = get_u32(data + at); at += 4;
+    out->sender_name[0] = '\0';
+    if (at < out->header.total_len)
+        get_string(data, out->header.total_len, at, out->sender_name,
+                   sizeof(out->sender_name));
     return WH2_PARSE_OK;
 }
 

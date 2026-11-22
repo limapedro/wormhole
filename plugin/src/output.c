@@ -59,7 +59,9 @@ typedef struct {
     wh_audio_item_t *audio_tail;
     int audio_count;
     int quality;
+    char name[128];
     int track_count;
+    int desc_sent[16];
     uint32_t sequence;
     uint64_t dropped;
 } wh_output_t;
@@ -120,7 +122,7 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
     }
     {
         size_t n = wh2_build_hello_ack(frame, 4u * 1024u * 1024u, ++ctx->sequence,
-                                       0, WH2_CAP_MULTI_AUDIO);
+                                       0, WH2_CAP_MULTI_AUDIO, ctx->name);
         int sent = n && wh_net_send(ctx->client, frame, n);
         blog(LOG_INFO, "[wormhole] ACK built=%zu sent=%d", n, sent);
         if (sent)
@@ -252,6 +254,10 @@ static void *wh_output_create(obs_data_t *settings, obs_output_t *output)
     wh_output_t *ctx = bzalloc(sizeof(*ctx));
     ctx->output = output;
     ctx->quality = (int)obs_data_get_int(settings, "quality");
+    {
+        const char *name = obs_data_get_string(settings, "name");
+        snprintf(ctx->name, sizeof(ctx->name), "%s", name ? name : "Wormhole Sender");
+    }
     ctx->track_count = 0; /* tracks are discovered from OBS callbacks */
     ctx->listener = WH_INVALID_SOCKET;
     ctx->client = WH_INVALID_SOCKET;
@@ -418,7 +424,11 @@ static void wh_output_raw_audio2(void *data, size_t idx, struct audio_data *fram
     item->channels = 2;
     item->bits = 16;
     item->timestamp = frames->timestamp;
-    item->need_desc = 1;
+    item->need_desc = 0;
+    if (idx >= 0 && idx < 16 && !ctx->desc_sent[idx]) {
+        item->need_desc = 1;
+        ctx->desc_sent[idx] = 1;
+    }
     if ((size_t)idx + 1u > (size_t)ctx->track_count)
         ctx->track_count = (int)idx + 1;
     wh_mutex_lock(&ctx->audio_mutex);

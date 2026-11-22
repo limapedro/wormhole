@@ -2,6 +2,7 @@
 #if defined(_MSC_VER)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+#include "wormhole/discovery.h"
 #include "wormhole/transport.h"
 #include "wormhole/media.h"
 #include "wormhole/protocol.h"
@@ -34,12 +35,13 @@ typedef struct {
     int have_offset;
     char host[128];
     uint16_t port;
+    char peer_name[128];
 } wh_source_t;
 
 static const char *wh_source_name(void *type_data)
 {
     (void)type_data;
-    return "Wormhole";
+    return "WORMHOLE // RECEIVER";
 }
 
 static void wh_source_defaults(obs_data_t *settings)
@@ -48,12 +50,64 @@ static void wh_source_defaults(obs_data_t *settings)
     obs_data_set_default_int(settings, "port", 18090);
 }
 
+static bool wh_scan_clicked(obs_properties_t *props, obs_property_t *p, void *data)
+{
+    (void)props; (void)p; (void)data;
+    wh_peer_t found[WH_MAX_PEERS];
+    size_t count = wh_discovery_peers(found, WH_MAX_PEERS);
+    size_t i;
+    blog(LOG_INFO, "[wormhole] network scan: %zu node(s) visible", count);
+    for (i = 0; i < count; ++i)
+        blog(LOG_INFO, "[wormhole]   [%zu] %s  %s:%u", i + 1, found[i].name,
+             found[i].ip, (unsigned)found[i].port);
+    return true; /* rebuild the dialog so the peer list refreshes */
+}
+
 static obs_properties_t *wh_source_properties(void *data)
 {
     (void)data;
     obs_properties_t *props = obs_properties_create();
-    obs_properties_add_text(props, "host", "Host", OBS_TEXT_DEFAULT);
-    obs_properties_add_int(props, "port", "TCP Port", 1024, 65535, 1);
+    obs_property_t *p;
+    wh_peer_t found[WH_MAX_PEERS];
+    size_t count = wh_discovery_peers(found, WH_MAX_PEERS);
+    size_t i;
+
+    p = obs_properties_add_text(props, "banner",
+        "  ______________________________________________________\n"
+        " | W O R M H O L E  //  S I G N A L  R E C E I V E R     |\n"
+        " | v0.2.0  ::  auto-discovery + manual uplink           |\n"
+        " |____________________________________________________|\n",
+        OBS_TEXT_INFO);
+    obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);
+
+    p = obs_properties_add_text(props, "sec1",
+        " ──[ 01 // DISCOVERED NODES ]──────────────────────────", OBS_TEXT_INFO);
+    obs_property_text_set_info_type(p, OBS_TEXT_INFO_NORMAL);
+
+    p = obs_properties_add_list(props, "peer", "> AUTO-DISCOVERED NODES",
+                                OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+    obs_property_list_add_string(p, "- SELECT / MANUAL ENTRY -", "");
+    for (i = 0; i < count; ++i) {
+        char key[128];
+        char label[256];
+        snprintf(key, sizeof(key), "%s:%u", found[i].ip, (unsigned)found[i].port);
+        snprintf(label, sizeof(label), "%s  /  %s", found[i].name, key);
+        obs_property_list_add_string(p, label, key);
+    }
+    obs_property_set_long_description(p,
+        "Nodes announcing Wormhole on UDP 18092. Select one to link automatically.");
+    obs_properties_add_button2(props, "scan", "> SCAN NETWORK", wh_scan_clicked, NULL);
+
+    p = obs_properties_add_text(props, "sec2",
+        " ──[ 02 // MANUAL LINK ]───────────────────────────────", OBS_TEXT_INFO);
+    obs_property_text_set_info_type(p, OBS_TEXT_INFO_NORMAL);
+    obs_properties_add_text(props, "host", "> HOST / IP", OBS_TEXT_DEFAULT);
+    obs_properties_add_int(props, "port", "> TCP PORT", 1024, 65535, 1);
+
+    p = obs_properties_add_text(props, "footer",
+        " [ SELECT A NODE OR ENTER IP:PORT ]   [ CYBERPUNK BUILD ]",
+        OBS_TEXT_INFO);
+    obs_property_text_set_info_type(p, OBS_TEXT_INFO_WARNING);
     return props;
 }
 
@@ -106,10 +160,30 @@ static WH_THREAD_API wh_source_thread(WH_THREAD_ARG arg)
     uint8_t hello[1024];
     size_t hello_len;
 
-    if (!wh_net_connect(ctx->host, ctx->port, &ctx->sock)) {
-        blog(LOG_WARNING, "[wormhole] no sender at %s:%u", ctx->host, ctx->port);
-        return WH_THREAD_RET;
+    while (ctx->running && ctx->sock == WH_INVALID_SOCKET) {
+        obs_data_t *settings = obs_source_get_settings(ctx->source);
+        const char *peer = obs_data_get_string(settings, "peer");
+        const char *manual = obs_data_get_string(settings, "host");
+        uint16_t port = (uint16_t)obs_data_get_int(settings, "port");
+        if (peer && *peer) {
+            char ip[64] = "";
+            unsigned p = 0;
+            if (sscanf(peer, "%63[^:]:%u", ip, &p) == 2 && p) {
+                snprintf(ctx->host, sizeof(ctx->host), "%s", ip);
+                port = (uint16_t)p;
+            }
+        } else {
+            snprintf(ctx->host, sizeof(ctx->host), "%s", manual ? manual : "127.0.0.1");
+        }
+        ctx->port = port ? port : 18090;
+        obs_data_release(settings);
+        if (wh_net_connect(ctx->host, ctx->port, &ctx->sock))
+            break;
+        wh_sleep_ms(500);
     }
+    if (ctx->sock == WH_INVALID_SOCKET)
+        return WH_THREAD_RET;
+    blog(LOG_INFO, "[wormhole] linking to %s:%u", ctx->host, ctx->port);
     hello_len = wh2_build_hello(hello, sizeof(hello), 1, 0,
                                 WH2_CAP_MULTI_AUDIO | WH2_CAP_CLOCK_SYNC,
                                 "wormhole-receiver", 3, 1920, 1080, 60, 1);
@@ -124,7 +198,10 @@ static WH_THREAD_API wh_source_thread(WH_THREAD_ARG arg)
                 wh2_hello_ack_t ack;
                 if (wh2_parse_hello_ack(ctx->frame, len, &ack) == WH2_PARSE_OK) {
                     ctx->v2 = 1;
-                    blog(LOG_INFO, "[wormhole] v2 negotiated, capabilities=0x%x", ack.capabilities);
+                    snprintf(ctx->peer_name, sizeof(ctx->peer_name), "%s",
+                             ack.sender_name[0] ? ack.sender_name : "unknown");
+                    blog(LOG_INFO, "[wormhole] v2 linked to sender '%s', capabilities=0x%x",
+                         ctx->peer_name, ack.capabilities);
                 }
                 continue;
             }
@@ -223,6 +300,7 @@ static void *wh_source_create(obs_data_t *settings, obs_source_t *source)
     ctx->yuv_cap = 16u * 1024u * 1024u;
     ctx->yuv = (uint8_t *)malloc(ctx->yuv_cap);
     wh_media_init(&ctx->media);
+    wh_discovery_receiver_start();
     ctx->running = 1;
     wh_thread_create(&ctx->thread, wh_source_thread, ctx);
     return ctx;
@@ -235,6 +313,7 @@ static void wh_source_destroy(void *data)
     ctx->running = 0;
     wh_net_close(ctx->sock);
     wh_thread_join(ctx->thread);
+    wh_discovery_receiver_stop();
     wh_media_free(&ctx->media);
     free(ctx->yuv);
     bfree(ctx);

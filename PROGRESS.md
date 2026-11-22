@@ -53,6 +53,21 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — Friendlier UX: sender identity, LAN discovery, cyberpunk UI (exp_015)
+
+- Sender can be **renamed**: a new `IDENTIFIER` field (default from hostname,
+  test value `GAMING-PC-NEO`) is broadcast over UDP and carried in the v2
+  HELLO_ACK, so the receiver logs `v2 linked to sender 'GAMING-PC-NEO'`.
+- Receiver **auto-discovers** Wormhole nodes on UDP 18092 (verified: discovered
+  `GAMING-PC-NEO` at `192.168.1.104:18090`) and offers both a discovered-node
+  combo box and manual host/port fields, with a `SCAN NETWORK` refresh button.
+- Both settings panels restyled with a pure-C **cyberpunk / terminal**
+  aesthetic: box-drawn banners, numbered sections, `>` controls, and a sender
+  diagnostics button (verified via its log output). No Qt/C++ introduced.
+- Fixed stream descriptors being re-sent on every audio packet; now once per
+  track. Build flags hardened with `/DWIN32_LEAN_AND_MEAN` for winsock.
+- Evidence in [exp_015/FINDINGS.md](exp_015/FINDINGS.md).
+
 ### 2026-11-22 — Wormhole plugin runs end to end on both OBS instances (exp_014)
 
 - Built the real plugin (`wormhole.dll`, C + SIMD libjpeg-turbo 3.2.0) with

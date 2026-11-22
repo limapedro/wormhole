@@ -118,9 +118,13 @@ into `build/plugin/wormhole.dll`.
 The plugin registers `wormhole-source`, `wormhole-output` and a Tools menu
 item (Teleport-style). It uses SIMD JPEG, v2 negotiation, dynamic audio track
 descriptors from OBS's own mixers, and a bounded queue so OBS threads never
-block on network I/O. `scripts/setup_portable_obs.ps1` configures the two
-portable OBS instances with Teleport removed. See
-[exp_013](exp_013/FINDINGS.md) and [exp_014](exp_014/FINDINGS.md).
+block on network I/O. The sender has an editable `IDENTIFIER` broadcast on
+UDP 18092 and carried in HELLO_ACK; the receiver discovers nodes on that port
+or links manually by IP/port. Both settings panels use a cyberpunk/terminal
+style built only with the OBS properties API (no Qt/C++).
+`scripts/setup_portable_obs.ps1` configures the two portable OBS instances with
+Teleport removed. See [exp_013](exp_013/FINDINGS.md),
+[exp_014](exp_014/FINDINGS.md) and [exp_015](exp_015/FINDINGS.md).
 
 ## Building original Teleport on Windows (Phase 1 attempt — blocked)
 
