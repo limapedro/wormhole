@@ -67,6 +67,19 @@ so no manual port entry is needed. Verified with
 - Verified dropdown items: `Desktop Audio`, `Mic/Aux`, `Desktop Audio 2`,
   `Mic One`, `Mic Two`, `TONE`, each with its auto port.
 
+## Clean test setup
+
+`scripts/setup_portable_obs.ps1` now strips the global `DesktopAudioDevice*` /
+`AuxAudioDevice*` entries from the scene template and disables them in
+`basic.ini`, so the test profile contains only:
+
+- Gaming PC: `Main Monitor` + `Desktop Audio 2` (one auto sender on port 18091).
+- Streaming PC: `Wormhole Video Capture` + `Wormhole Audio` (port 18091).
+
+Verified: sender `audio output 'Desktop Audio 2' connected`, receiver
+`audio input name: Desktop Audio 2`, `learned 1 remote audio channel(s)`.
+Both source lists contain only those entries.
+
 ## Limitations
 
 - Each channel needs its own unique port; no automatic port negotiation.

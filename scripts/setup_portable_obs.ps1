@@ -45,6 +45,10 @@ FPSDen=1
 [Audio]
 SampleRate=48000
 ChannelSetup=2
+DesktopDevice1=disabled
+DesktopDevice2=disabled
+AuxDevice1=disabled
+AuxDevice2=disabled
 
 [Websocket]
 ServerEnabled=true
@@ -103,29 +107,42 @@ function Add-Item($sceneSource, $source) {
     }
 }
 
-# Gaming PC: main monitor (Display Capture) plus three audio inputs.
+function Remove-GlobalAudioDevices($scene) {
+    foreach ($prop in @($scene.PSObject.Properties.Name)) {
+        if ($prop -match 'AudioDevice') { $scene.PSObject.Properties.Remove($prop) | Out-Null }
+    }
+}
+
+# Gaming PC: main monitor + one audio output. Default devices are disabled so
+# the test scene contains only these sources.
 $senderScene = Get-Content $template -Raw | ConvertFrom-Json
+Remove-GlobalAudioDevices $senderScene
 $sceneSource = $senderScene.sources | Where-Object { $_.id -eq 'scene' } | Select-Object -First 1
+$senderScene.sources = @($sceneSource)
 $sceneSource.settings.items = @()
 $sceneSource.settings.id_counter = 0
 $display = New-Source 'Main Monitor' 'monitor_capture' ([ordered]@{ monitor = 0; capture_cursor = $true }) 0
 $senderScene.sources += $display
 Add-Item $sceneSource $display
-$audio1 = New-Source 'Desktop Audio' 'wasapi_output_capture' ([ordered]@{ device_id = 'default' }) 255
-$audio2 = New-Source 'Mic One' 'wasapi_input_capture' ([ordered]@{ device_id = 'default' }) 255
-$audio3 = New-Source 'Mic Two' 'wasapi_input_capture' ([ordered]@{ device_id = 'default' }) 255
-foreach ($a in @($audio1, $audio2, $audio3)) { $senderScene.sources += $a; Add-Item $sceneSource $a }
+$audio1 = New-Source 'Desktop Audio 2' 'wasapi_output_capture' ([ordered]@{ device_id = 'default' }) 255
+$senderScene.sources += $audio1
+Add-Item $sceneSource $audio1
 $senderScene.name = 'WormholeSender'
 $senderScene | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $sender 'config\obs-studio\basic\scenes\WormholeSender.json') -Encoding UTF8
 
-# Streaming PC: one Wormhole receiver source, connected to the gaming PC.
+# Streaming PC: video capture + one audio channel from the gaming PC.
 $receiverScene = Get-Content $template -Raw | ConvertFrom-Json
+Remove-GlobalAudioDevices $receiverScene
 $sceneSource = $receiverScene.sources | Where-Object { $_.id -eq 'scene' } | Select-Object -First 1
+$receiverScene.sources = @($sceneSource)
 $sceneSource.settings.items = @()
 $sceneSource.settings.id_counter = 0
-$rx = New-Source 'Wormhole' 'wormhole-source' ([ordered]@{ host = '127.0.0.1'; port = 18090 }) 255
+$rx = New-Source 'Wormhole Video Capture' 'wormhole-source' ([ordered]@{ host = '127.0.0.1'; port = 18090 }) 0
 $receiverScene.sources += $rx
 Add-Item $sceneSource $rx
+$rxAudio = New-Source 'Wormhole Audio' 'wormhole-audio' ([ordered]@{ host = '127.0.0.1'; port = 18091 }) 255
+$receiverScene.sources += $rxAudio
+Add-Item $sceneSource $rxAudio
 $receiverScene.name = 'WormholeReceiver'
 $receiverScene | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $receiver 'config\obs-studio\basic\scenes\WormholeReceiver.json') -Encoding UTF8
 
