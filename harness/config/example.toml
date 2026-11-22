@@ -33,3 +33,11 @@ channels = 2
 packets = 1000
 payload_bytes = 4096
 output = "exp_results/dissector-bench.csv"
+
+[reference]
+target = "127.0.0.1:18081"
+listen = "127.0.0.1:18081"
+frames = 30
+fps = 30
+quality = 90
+output = "exp_results/reference-receiver.csv"

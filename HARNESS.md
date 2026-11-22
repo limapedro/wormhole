@@ -42,7 +42,7 @@ are positional.
 | Dissector self-benchmark | **Implemented** | Measures harness encode/decode throughput only — explicitly **not** a Teleport or Wormhole benchmark |
 | Instrumented upstream build | Blocked | Patched Teleport with tracing: frame timings, allocations, GC pauses, cgo calls, queue depths; kept separate from Wormhole code. See build blockers below |
 | Mock OBS host | Planned | Load/exercise a plugin without full OBS GUI in CI; fallback: headless/scripted OBS, limits documented |
-| Reference sender/receiver | Planned | Standalone Teleport-protocol peers for differential testing |
+| Reference sender/receiver | **Implemented** | Standalone Rust peers (`ref-sender`, `ref-receiver`) that emit/decode real JPEG + PCM in the documented wire format; validated in [exp_002](exp_002/FINDINGS.md) |
 | Differential tester | Planned | Compare decoded output, timing, bandwidth and failure behavior |
 | Full benchmark runner | Planned | Run `PERFORMANCE_TARGETS.md` scenarios S1–S10; write CSV/JSON + summary into `exp_NNN/` |
 
@@ -68,6 +68,12 @@ cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml sink
 cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml proxy
 cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml replay
 cargo run -p wormhole-harness -- --config harness/config/proxy-dissect.toml dissect
+
+# Standalone reference peers through the proxy
+cargo run -p wormhole-harness -- --config harness/config/reference-test.toml ref-receiver
+cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml proxy
+cargo run -p wormhole-harness -- --config harness/config/reference-test.toml ref-sender
+cargo run -p wormhole-harness -- --config harness/config/reference-test.toml dissect
 
 # Harness self-benchmark (not a product benchmark)
 cargo run -p wormhole-harness -- --config harness/config/example.toml bench
