@@ -1,0 +1,19 @@
+# Capture the live Teleport stream between two portable OBS instances.
+
+[general]
+experiment = "exp_006"
+output_dir = "exp_results"
+
+[dissect]
+input = "exp_results/obs-capture.bin"
+output = "exp_results/obs-dissection.json"
+
+[proxy]
+listen = "127.0.0.1:18080"
+target = "127.0.0.1:18081"
+capture = "exp_results/obs-upstream.bin"
+capture_down = "exp_results/obs-capture.bin"
+delay_ms = 0
+drop_percent = 0
+bandwidth_bytes_per_sec = 0
+chunk_bytes = 65536

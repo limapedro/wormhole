@@ -19,11 +19,17 @@ type CaptureWriter = Arc<Mutex<BufWriter<File>>>;
 /// Start the proxy and serve connections until the process exits.
 pub fn run(cfg: &Config) -> Result<(), Box<dyn std::error::Error>> {
     ensure_parent(&cfg.proxy.capture)?;
+    ensure_parent(&cfg.proxy.capture_down)?;
     let file = OpenOptions::new()
         .create(true)
         .append(true)
         .open(&cfg.proxy.capture)?;
     let capture: CaptureWriter = Arc::new(Mutex::new(BufWriter::new(file)));
+    let down_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&cfg.proxy.capture_down)?;
+    let capture_down: CaptureWriter = Arc::new(Mutex::new(BufWriter::new(down_file)));
 
     let listener = TcpListener::bind(&cfg.proxy.listen)?;
     println!(
@@ -38,8 +44,9 @@ pub fn run(cfg: &Config) -> Result<(), Box<dyn std::error::Error>> {
             Ok(client) => {
                 let cfg = cfg.clone();
                 let capture = Arc::clone(&capture);
+                let capture_down = Arc::clone(&capture_down);
                 thread::spawn(move || {
-                    if let Err(err) = handle_client(client, &cfg, capture) {
+                    if let Err(err) = handle_client(client, &cfg, capture, capture_down) {
                         eprintln!("proxy: connection ended: {err}");
                     }
                 });
@@ -54,6 +61,7 @@ fn handle_client(
     client: TcpStream,
     cfg: &Config,
     capture: CaptureWriter,
+    capture_down: CaptureWriter,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut upstream = TcpStream::connect(&cfg.proxy.target)?;
     let mut from_client = client.try_clone()?;
@@ -68,6 +76,11 @@ fn handle_client(
                 let n = from_upstream.read(&mut buf)?;
                 if n == 0 {
                     break;
+                }
+                {
+                    let mut writer = capture_down.lock().map_err(|err| err.to_string())?;
+                    writer.write_all(&buf[..n])?;
+                    writer.flush()?;
                 }
                 to_client.write_all(&buf[..n])?;
             }

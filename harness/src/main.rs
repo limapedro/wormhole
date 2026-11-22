@@ -9,6 +9,7 @@ mod differential;
 mod dissect;
 mod media;
 mod proxy;
+mod quality;
 mod reference;
 mod replay;
 mod synth;
@@ -55,6 +56,8 @@ enum Command {
     Bench,
     /// Compare two captures packet by packet (differential tester stage 1).
     Differential,
+    /// Decode captured JPEG frames and report image-quality metrics.
+    Quality,
 }
 
 fn main() -> ExitCode {
@@ -88,6 +91,7 @@ fn main() -> ExitCode {
         Command::RefReceiver => reference::receiver(&cfg),
         Command::Bench => bench::run(&cfg),
         Command::Differential => differential::run(&cfg),
+        Command::Quality => quality::run(&cfg),
     };
 
     match result {

@@ -13,6 +13,7 @@ output = "exp_results/dissection.json"
 listen = "127.0.0.1:18080"
 target = "127.0.0.1:18081"
 capture = "exp_results/proxy-capture.bin"
+capture_down = "exp_results/proxy-capture-down.bin"
 delay_ms = 0
 drop_percent = 0
 bandwidth_bytes_per_sec = 0

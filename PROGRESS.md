@@ -53,6 +53,28 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — Two portable OBS instances monitored (Phase 2)
+
+- Built two self-contained portable OBS copies under git-ignored
+  `third_party/obs-portable/` and added repeatable scripts
+  `scripts/setup_portable_obs.ps1` and `scripts/run_two_obs.ps1`.
+- [exp_006/FINDINGS.md](exp_006/FINDINGS.md) (hypothesis first): Teleport 0.8.0
+  loaded in both instances; live proxy capture 8,389,332 bytes = 768 packets
+  (300 JPEG + 468 WAVE), byte-identical round-trip, 48 kHz/float/2-ch audio,
+  ~10 s span. CPU over 6.02 s: receiver 0.453 s (0.63 % of 12 logical CPUs),
+  sender 1.125 s (1.56 %); working sets 266.1/275.5 MB. Image quality over
+  300 decoded 1280x720 frames: mean RGB (18,1,230), MSE 0.000, PSNR capped
+  at 120 dB.
+- The user's "plugin errors" screenshot was diagnosed from logs: it is caused
+  by bundled `aja`/`decklink`/`multi-source-record` modules, not Teleport,
+  which loaded and streamed. No upstream patch needed.
+- Harness gained `capture_down` (records both TCP directions) and a `quality`
+  command. Negative results recorded: initial empty capture due to recording
+  only one direction; removing unrelated core modules blocked OBS startup;
+  infinite PSNR serialized as `null` (now capped at 120 dB).
+- These are **Teleport** baseline numbers, not Wormhole results; no parity or
+  performance claim follows yet.
+
 ### 2026-11-22 — All-C pivot: Visual Studio core builds and is wire-compatible
 
 - User directed an all-C implementation; previous Rust architecture default

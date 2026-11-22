@@ -35,10 +35,12 @@ are positional.
 | Component | Status | Purpose |
 |---|---|---|
 | Wire-format library (`wh-protocol`) | **Implemented** | Strict bounded decode/encode of the 16-byte header, 88-byte `ImageHeader` and 16-byte `WaveHeader`; unknown types preserved; 10 unit tests |
-| Capture/impairment proxy | **Implemented (basic)** | Records sender→receiver bytes to a raw capture; injects fixed delay, deterministic drop percentage and an approximate bandwidth cap. **pcap export and high-resolution per-byte timestamps are not yet implemented** |
+| Capture/impairment proxy | **Implemented (basic)** | Records **both** directions (`capture` = client→target, `capture_down` = target→client, the media direction for Teleport); injects fixed delay, deterministic drop percentage and an approximate bandwidth cap. **pcap export and high-resolution per-byte timestamps are not yet implemented** |
 | Protocol dissector | **Implemented** | Decodes a capture to JSON summaries and asserts byte-identical re-encode |
 | Synthetic media generator | **Implemented** | Deterministic I420 color bars with moving marker across the full 720p30/1080p30/1080p60/1440p60/4K30 matrix, plus 4 independent S16LE WAV tracks with distinct sync tones; validated in [exp_003](exp_003/FINDINGS.md) |
 | Capture fixture, replay and sink | **Implemented** | Produce and replay deterministic Teleport-compatible byte streams for unattended tests |
+| Image-quality analysis | **Implemented** | Decodes captured JPEG frames, reports dimensions, mean RGB, MSE and PSNR ([exp_006](exp_006/FINDINGS.md)) |
+| Two-portable-OBS monitor | **Implemented** | Scripts configure and launch two independent portable OBS instances, sample CPU/memory, capture the stream through the proxy, then dissect and score image quality |
 | Dissector self-benchmark | **Implemented** | Measures harness encode/decode throughput only — explicitly **not** a Teleport or Wormhole benchmark |
 | Instrumented upstream build | Blocked | Patched Teleport with tracing: frame timings, allocations, GC pauses, cgo calls, queue depths; kept separate from Wormhole code. See build blockers below |
 | Mock OBS host | Planned | Load/exercise a plugin without full OBS GUI in CI; fallback: headless/scripted OBS, limits documented |
@@ -91,6 +93,12 @@ cargo run -p wormhole-harness -- --config harness/config/reference-test.toml dis
 
 # Differential capture comparison (stage 1)
 cargo run -p wormhole-harness -- --config <config-with-differential-section> differential
+
+# Two portable OBS instances through the proxy + CPU sampling
+powershell -File scripts/setup_portable_obs.ps1
+powershell -File scripts/run_two_obs.ps1 -WindowSeconds 6
+cargo run -p wormhole-harness -- --config harness/config/obs-proxy.toml dissect
+cargo run -p wormhole-harness -- --config harness/config/obs-quality.toml quality
 
 # Harness self-benchmark (not a product benchmark)
 cargo run -p wormhole-harness -- --config harness/config/example.toml bench

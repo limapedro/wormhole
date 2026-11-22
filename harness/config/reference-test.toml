@@ -12,6 +12,7 @@ output = "exp_results/reference-dissection.json"
 listen = "127.0.0.1:18080"
 target = "127.0.0.1:18081"
 capture = "exp_results/proxy-capture.bin"
+capture_down = "exp_results/proxy-capture-down.bin"
 
 [reference]
 target = "127.0.0.1:18080"
