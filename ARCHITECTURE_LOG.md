@@ -6,6 +6,66 @@ citing new evidence. Never silently change course. Newest entries first.
 
 ---
 
+## 2026-11-22 — License decision: Wormhole is GPL-2.0-or-later
+
+- **Decision:** Wormhole is licensed **GNU GPL version 2, or (at our option)
+  any later version** — the same terms as upstream obs-teleport and compatible
+  with libobs, which is GPL-2.0-or-later. The placeholder LICENSE is replaced
+  with the full GPL-2.0 text. Upstream attribution (Florian Zwoch,
+  2021-2026) is recorded in README.md and source headers.
+- **Alternatives considered:**
+  - **Clean-room reimplementation under a permissive license** — rejected:
+    Wormhole links libobs (GPL-2.0-or-later), so the combined work must be
+    GPL-compatible; a permissive-only license would not satisfy libobs's
+    copyleft obligations.
+  - **GPL-3.0-only** — rejected: it would be incompatible with GPL-2.0-only
+    parts of the ecosystem and is not needed; "GPL-2.0-or-later" matches both
+    upstream and libobs.
+  - **Dual license** — rejected as unnecessary complexity for v1.
+- **Evidence:** upstream `LICENSE` is GPL-2.0 verbatim; every upstream source
+  header states "...either version 2 of the License, or (at your option) any
+  later version" (`third_party/obs-teleport/LICENSE:1-7`, `main.go:1-19`).
+  libobs headers fetched from OBS 33.0.0 carry the same GPL-2.0-or-later
+  notice. No upstream source code was copied into Wormhole; only protocol
+  facts were recorded in PROTOCOL.md.
+- **Consequences:** all Wormhole source files carry the GPL-2.0-or-later
+  notice; releases include the license and upstream attribution; RISKS.md R01
+  is resolved. This decision satisfies the contract's requirement that the
+  license check be logged before publishing derived code.
+
+## 2026-11-22 — Phase 1 recon: protocol facts and overturned hypotheses
+
+- **Decision:** Teleport compatibility mode must implement the source-derived
+  behavior in [PROTOCOL.md](PROTOCOL.md), not the prompt's starting
+  hypotheses. Specifically: discovery is UDP multicast on
+  `239.255.255.250:9999` with raw JSON (not mDNS); audio is **uncompressed
+  interleaved PCM** (not Opus); there is **no wire handshake** or version
+  negotiation; video is JPEG via SIMD libjpeg-turbo with quality 1–100;
+  timestamps are nanosecond OBS timestamps with a one-time receiver offset.
+- **Alternatives considered:** proceeding on the starting hypotheses.
+  Rejected — the contract requires locally captured evidence; source reading
+  at the pinned commit is that evidence.
+- **Evidence:** `third_party/obs-teleport/` HEAD `e8c49f4…`, release tag
+  `0.8.0` = `b61ee3c…` (identical source), pinned peerdiscovery `e0ee252…`;
+  full findings and line-level citations in PROTOCOL.md Part 1.
+- **Consequences:** Wormhole protocol v2 must add a magic/version field,
+  total length, sequence numbers and explicit clock domain from the start,
+  because Part 1 has none of them. Capture-based confirmation is still
+  pending (`C` items in PROTOCOL.md) and is a Phase 2 deliverable. Source
+  reading alone does **not** validate performance hypotheses.
+
+## 2026-11-22 — Provisional architecture decisions remain unconfirmed
+
+- **Decision:** the two provisional entries below (language/architecture and
+  hot-path/wire direction) are explicitly **not yet locked by evidence**.
+  Reconstructed upstream behavior shows the problems to solve (goroutine per
+  frame, fresh allocations, blocking send on full queue) but no benchmark has
+  compared Rust vs C++ or measured our allocation rate yet.
+- **Evidence:** PROTOCOL.md §1.7 and §1.9 (source-derived); no `exp_NNN`
+  benchmark exists.
+- **Consequences:** Phase 3 must produce experiments before these are marked
+  locked; issue #25 et al. remain open.
+
 ## 2026-11-22 — Project name and repository
 
 - **Decision:** project is named **Wormhole**; repository is
@@ -66,8 +126,7 @@ citing new evidence. Never silently change course. Newest entries first.
 - **Consequences:** protocol v2 spec must reserve version/capability fields
   from day one so compatibility mode can be negotiated rather than bolted on.
 
-## 2026-11-22 — License decision
+## 2026-11-22 — License decision (superseded)
 
-- **Status: NOT YET DECIDED.** Blocked on Phase 1 license check. See
-  [RISKS.md](RISKS.md). The LICENSE file is a placeholder and no
-  upstream-derived code may be published until this entry is finalized.
+- **Status: RESOLVED** by the newer entry at the top of this log:
+  GPL-2.0-or-later. This placeholder entry is retained for history.

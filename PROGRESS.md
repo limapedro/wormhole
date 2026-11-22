@@ -6,20 +6,20 @@ Newest entries first. Updated on every merge to `main`.
 
 | Field | Value |
 |---|---|
-| Current phase | Phase 0 — Setup (nearly complete) |
-| Overall completion | ~20% (docs and tracker done; no plugin code yet) |
+| Current phase | Phase 1 — Reconnaissance |
+| Overall completion | ~30% (setup done; recon source-derived; no plugin code yet) |
 | Buildable `main` | Yes (docs only) |
 | CI | Not yet configured (skeleton lands with first code commit, issue #5) |
-| Blocked items | Go toolchain missing locally (issue #6 / RISKS.md R02); license check pending (issue #8 / R01) |
-| Latest benchmark | None yet — baseline pending `exp_000` |
-| Next three actions | 1. Start Phase 1 recon: install Go, clone upstream, pin commit hash (#6, #7). 2. License check (#8) before any derived code. 3. Run `exp_000` baseline (#11). |
+| Blocked items | No local C compiler/libobs SDK headers → source build and instrumented build blocked (issues #6/#15, RISKS.md R13). `exp_000` baseline not yet run. |
+| Latest benchmark | **None** — baseline still pending `exp_000`; no performance claims made |
+| Next three actions | 1. Capture real Teleport traffic in the harness and confirm `C`-class protocol facts (#13/#14/#23). 2. Build synthetic media + benchmark runner to run `exp_000` (#17/#18/#22/#11). 3. Resolve portable toolchain blocker for the instrumented build (#6/#15). |
 
 ## Phase completion
 
 | Phase | Milestone | Progress | Notes |
 |---|---|---|---|
 | 0 — Setup | `0 - Setup` | 85% | Repo, docs PR, 10 milestones, 12 labels and 57 issues done; CI skeleton (#5) pending |
-| 1 — Recon | `1 - Recon` | 5% | `exp_000/HYPOTHESIS.md` written; upstream not yet cloned |
+| 1 — Recon | `1 - Recon` | 75% | Upstream cloned/pinned, license decision logged, full source-derived protocol and parity checklist done; source build and exp_000 baseline remain blocked/open |
 | 2 — Harness | `2 - Harness` | 0% | Not started |
 | 3 — Architecture | `3 - Architecture` | 0% | Starting defaults drafted in `ARCHITECTURE_LOG.md`, unconfirmed |
 | 4 — Parity | `4 - Parity` | 0% | Not started |
@@ -52,6 +52,36 @@ are no measured numbers.
 | Network failure behavior | chaos suite | not measured | graceful degradation | Phase 8 |
 
 ## Log
+
+### 2026-11-22 — Phase 1 reconnaissance complete (source-derived)
+
+- Cloned upstream `fzwoch/obs-teleport` into git-ignored `third_party/` and
+  pinned HEAD `e8c49f4be390ed17c434099541ce2fd65720e4c8` and release tag
+  `0.8.0` `b61ee3c63f629bca75e7571bb7bdd151d8ee5aa6`. Source is identical
+  between them (`git diff 0.8.0 HEAD` changes only CI config). Read all
+  ~2,400 lines; results are in [PROTOCOL.md](PROTOCOL.md) with line-level
+  citations.
+- **License check:** upstream is GPL-2.0-or-later; libobs is
+  GPL-2.0-or-later; Wormhole is now GPL-2.0-or-later with LICENSE finalized
+  and decision logged in [ARCHITECTURE_LOG.md](ARCHITECTURE_LOG.md).
+  RISKS.md R01 resolved. No upstream code was copied.
+- **Hypotheses overturned by evidence:** discovery is UDP multicast
+  (`239.255.255.250:9999`, raw JSON) not mDNS; audio is uncompressed
+  interleaved PCM, not Opus; there is no wire handshake, version or
+  capability exchange; video is JPEG via SIMD libjpeg-turbo with quality
+  1–100 (default 90).
+- Parity checklist in [GOAL.md](GOAL.md): all 24 rows moved from
+  `unverified` to `confirmed` (source evidence). Differential-test
+  `verified` status is still pending Phase 4.
+- **Negative result:** building upstream from source on Windows is blocked —
+  no Go, no C compiler, no libobs SDK headers locally; upstream CI only builds
+  via a Linux Docker/mingw toolchain. Recorded in [HARNESS.md](HARNESS.md),
+  RISKS.md R13, issues #6/#15. The official 0.8.0 release DLL is used for
+  recon instead (SHA-256 `7BC1412C…E45C6`).
+- **Incident:** the NSIS installer ignored `/D` and wrote to the pre-existing
+  global OBS plugin directory; documented in HARNESS.md and RISKS.md R14;
+  no user profile data changed and the install was left intact.
+- No benchmark was run; `exp_000/FINDINGS.md` does not exist yet.
 
 ### 2026-11-22 — Docs PR merged and issue tracker created (Phase 0)
 

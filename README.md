@@ -8,8 +8,9 @@ practical latency, CPU use, memory use and overhead.
 Wormhole keeps everything Teleport does, adds multiple simultaneous audio
 outputs, and targets Windows, Linux and macOS.
 
-> **Status:** Phase 0 (setup). This repository currently contains planning
-> documentation only. See [PROGRESS.md](PROGRESS.md) for the live dashboard.
+> **Status:** Phase 1 (reconnaissance). The repository contains planning docs
+> and a source-derived protocol specification; no plugin code yet. See
+> [PROGRESS.md](PROGRESS.md) for the live dashboard.
 
 ## Why
 
@@ -49,7 +50,10 @@ multi-audio.
 
 ## License
 
-License selection is pending the Phase 1 license check. The current
-[LICENSE](LICENSE) file is a **placeholder** and will be replaced once the
-upstream license and copyleft obligations are verified and logged in
-[ARCHITECTURE_LOG.md](ARCHITECTURE_LOG.md).
+Wormhole is licensed **GPL-2.0-or-later** ([LICENSE](LICENSE)), matching
+upstream obs-teleport and the libobs copyleft obligations. The license check
+is logged in [ARCHITECTURE_LOG.md](ARCHITECTURE_LOG.md).
+
+Upstream attribution: **obs-teleport**, Copyright (C) 2021-2026 Florian
+Zwoch, GPL-2.0-or-later. Wormhole is an independent reimplementation; the
+reverse-engineered protocol is documented in [PROTOCOL.md](PROTOCOL.md).
