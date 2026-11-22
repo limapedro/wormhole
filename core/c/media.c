@@ -44,7 +44,7 @@ static const profile_t PROFILES[5] = {
 static int write_i420(const char *dir, const char *name, unsigned width,
                       unsigned height, unsigned frames)
 {
-    char path[WH_MAX_PATH];
+    char path[WH_MAX_PATH + 64];
     FILE *file;
     unsigned char *y;
     unsigned char *u;
@@ -120,7 +120,7 @@ static void write_u16(FILE *file, uint16_t value)
 
 static int write_wav(const char *dir, unsigned base_hz)
 {
-    char path[WH_MAX_PATH];
+    char path[WH_MAX_PATH + 64];
     FILE *file;
     unsigned rate = 48000u;
     unsigned seconds = 2u;

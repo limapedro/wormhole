@@ -117,7 +117,7 @@ int wh_cmd_ref_sender(const wh_config_t *config)
     unsigned height = config->media_height;
     unsigned char audio[4096];
     unsigned frame;
-    char jpeg_path[WH_MAX_PATH];
+    char jpeg_path[WH_MAX_PATH + 64];
     unsigned char *wire = NULL;
     size_t wire_cap = 0;
     FILE *jpeg_file;
