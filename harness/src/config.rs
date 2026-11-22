@@ -24,6 +24,8 @@ pub struct Config {
     pub bench: BenchConfig,
     /// Standalone reference sender/receiver settings.
     pub reference: ReferenceConfig,
+    /// Differential tester settings.
+    pub differential: DifferentialConfig,
 }
 
 /// Shared experiment settings.
@@ -196,6 +198,28 @@ impl Default for ReferenceConfig {
             fps: 30,
             quality: 90,
             output: PathBuf::from("exp_results/reference-receiver.csv"),
+        }
+    }
+}
+
+/// Differential comparison settings.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DifferentialConfig {
+    /// First capture (for example, original Teleport).
+    pub left: PathBuf,
+    /// Second capture (for example, Wormhole).
+    pub right: PathBuf,
+    /// JSON report output path.
+    pub output: PathBuf,
+}
+
+impl Default for DifferentialConfig {
+    fn default() -> Self {
+        Self {
+            left: PathBuf::from("exp_results/left.bin"),
+            right: PathBuf::from("exp_results/right.bin"),
+            output: PathBuf::from("exp_results/differential.json"),
         }
     }
 }

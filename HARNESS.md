@@ -43,7 +43,7 @@ are positional.
 | Instrumented upstream build | Blocked | Patched Teleport with tracing: frame timings, allocations, GC pauses, cgo calls, queue depths; kept separate from Wormhole code. See build blockers below |
 | Mock OBS host | Planned | Load/exercise a plugin without full OBS GUI in CI; fallback: headless/scripted OBS, limits documented |
 | Reference sender/receiver | **Implemented** | Standalone Rust peers (`ref-sender`, `ref-receiver`) that emit/decode real JPEG + PCM in the documented wire format; validated in [exp_002](exp_002/FINDINGS.md) |
-| Differential tester | Planned | Compare decoded output, timing, bandwidth and failure behavior |
+| Differential tester | **Stage 1 implemented** | `differential` compares two captures by message type, timestamp and payload hash, writes a JSON report and fails on mismatch ([exp_004](exp_004/FINDINGS.md)). Live-sender driving and timing/bandwidth/failure comparison remain pending |
 | Full benchmark runner | Planned | Run `PERFORMANCE_TARGETS.md` scenarios S1–S10; write CSV/JSON + summary into `exp_NNN/` |
 
 ## Running (implemented commands)
@@ -74,6 +74,9 @@ cargo run -p wormhole-harness -- --config harness/config/reference-test.toml ref
 cargo run -p wormhole-harness -- --config harness/config/proxy-test.toml proxy
 cargo run -p wormhole-harness -- --config harness/config/reference-test.toml ref-sender
 cargo run -p wormhole-harness -- --config harness/config/reference-test.toml dissect
+
+# Differential capture comparison (stage 1)
+cargo run -p wormhole-harness -- --config <config-with-differential-section> differential
 
 # Harness self-benchmark (not a product benchmark)
 cargo run -p wormhole-harness -- --config harness/config/example.toml bench
