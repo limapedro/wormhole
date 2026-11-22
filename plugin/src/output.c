@@ -21,6 +21,9 @@
 #define WH_MAX_AUDIO_QUEUE 240
 #define WH_FRAME_SIZE (4u * 1024u * 1024u)
 
+static obs_source_t *auto_audio_senders[16];
+static int auto_audio_sender_count;
+
 typedef struct wh_video_item {
     struct wh_video_item *next;
     uint8_t *yuv;
@@ -237,10 +240,60 @@ static void wh_send_channels(wh_socket_t client, wh_output_t *ctx)
         wh_mutex_lock(&ctx->send_mutex);
         wh_net_send(client, frame, n);
         wh_mutex_unlock(&ctx->send_mutex);
-        blog(LOG_INFO, "[wormhole] advertised %zu audio channel(s)", strlen(text));
+        {
+            int lines = 1;
+            size_t k;
+            for (k = 0; k < strlen(text); ++k)
+                if (text[k] == '\n') ++lines;
+            blog(LOG_INFO, "[wormhole] advertised %d audio channel(s)",
+                 text[0] ? lines : 0);
+        }
     }
     bfree(text);
     free(frame);
+}
+
+/* Auto-create one Wormhole audio sender per audio source in this PC's mixer
+ * so the streaming PC's dropdown is populated without manual setup. */
+static bool wh_auto_audio_source(void *param, obs_source_t *source)
+{
+    int *port = param;
+    const char *id = obs_source_get_id(source);
+    const char *name = obs_source_get_name(source);
+    char unique[192];
+    obs_source_t *existing;
+    obs_data_t *settings;
+    obs_source_t *created;
+
+    if (!(obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO))
+        return true;
+    if (id && strncmp(id, "wormhole", 8) == 0)
+        return true;
+    snprintf(unique, sizeof(unique), "Wormhole Audio - %s", name ? name : " audio");
+    existing = obs_get_source_by_name(unique);
+    if (existing) {
+        obs_source_release(existing);
+        ++*port;
+        return true;
+    }
+    settings = obs_data_create();
+    obs_data_set_string(settings, "target", name);
+    obs_data_set_int(settings, "port", *port);
+    created = obs_source_create("wormhole-audio-output", unique, settings, NULL);
+    if (created && auto_audio_sender_count < 16)
+        auto_audio_senders[auto_audio_sender_count++] = created; /* keep ref */
+    else if (created)
+        obs_source_release(created);
+    obs_data_release(settings);
+    blog(LOG_INFO, "[wormhole] auto audio sender '%s' on %d", unique, *port);
+    ++*port;
+    return true;
+}
+
+static void wh_auto_create_audio_outputs(void)
+{
+    int port = 18091;
+    obs_enum_sources(wh_auto_audio_source, &port);
 }
 
 static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
@@ -393,6 +446,7 @@ static bool wh_output_start(void *data)
         blog(LOG_ERROR, "[wormhole] cannot listen on port %u", port);
         return false;
     }
+    wh_auto_create_audio_outputs();
     ctx->running = 1;
     ctx->negotiated = 0;
     memset(ctx->desc_sent, 0, sizeof(ctx->desc_sent));
@@ -436,6 +490,10 @@ static void wh_output_stop(void *data, uint64_t ts)
         ctx->audio_thread_valid = 0;
     }
     wh_output_drain(ctx);
+    while (auto_audio_sender_count > 0) {
+        obs_source_release(auto_audio_senders[--auto_audio_sender_count]);
+        auto_audio_senders[auto_audio_sender_count] = NULL;
+    }
     obs_output_end_data_capture(ctx->output);
     blog(LOG_INFO, "[wormhole] data capture ended");
 }
