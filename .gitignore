@@ -44,7 +44,11 @@ bin/
 
 # --- Go ---------------------------------------------------------------------
 # (upstream reference only; kept git-ignored / pinned)
-/vendor/
+/vendor/*
+# Exception: vendored C headers used by the all-C harness (public domain).
+!vendor/stb/
+!vendor/stb/stb_image.h
+!vendor/stb/LICENSE.txt
 *.test
 *.prof
 *.exe~

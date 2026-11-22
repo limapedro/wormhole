@@ -33,6 +33,15 @@ typedef struct {
     unsigned media_height;
     unsigned media_frames;
     unsigned media_fps;
+
+    char quality_output[WH_MAX_PATH];
+    int expected_r;
+    int expected_g;
+    int expected_b;
+
+    char differential_left[WH_MAX_PATH];
+    char differential_right[WH_MAX_PATH];
+    char differential_output[WH_MAX_PATH];
 } wh_config_t;
 
 /* Fill with explicit defaults. */
@@ -46,5 +55,7 @@ int wh_cmd_check(const wh_config_t *config);
 int wh_cmd_dissect(const wh_config_t *config);
 int wh_cmd_synth(const wh_config_t *config);
 int wh_cmd_proxy(const wh_config_t *config);
+int wh_cmd_quality(const wh_config_t *config);
+int wh_cmd_differential(const wh_config_t *config);
 
 #endif /* WORMHOLE_HARNESS_H */

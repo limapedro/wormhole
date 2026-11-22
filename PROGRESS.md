@@ -53,6 +53,19 @@ are no measured numbers.
 
 ## Log
 
+### 2026-11-22 — All-C quality and differential commands (Phase 2)
+
+- Vendored public-domain `stb_image.h` under `vendor/stb/` with license note.
+- Added C `quality` (JPEG decode, mean RGB, MSE, PSNR) and C `differential`
+  (packet count/type/timestamp/payload-hash comparison with JSON report)
+  commands; build scripts include `-Ivendor` and `-lm` on POSIX.
+- [exp_009/FINDINGS.md](exp_009/FINDINGS.md) (hypothesis first): MSVC `/W4 /WX`
+  build clean; C quality on the live capture matched Rust exactly (309 frames,
+  1280x720, RGB (18,1,230), MSE 0.000, capped PSNR 120 dB); C differential on
+  identical captures reported 790/790 compared, 0 differences.
+- The complete OBS monitoring analysis path is now all C except the PowerShell
+  launcher. Remaining Rust-only commands: `media`, `ref-sender`, `ref-receiver`.
+
 ### 2026-11-22 — All-C proxy captures the live OBS pair (Phase 2)
 
 - Ported the TCP proxy to C (`core/c/proxy.c`, Winsock/POSIX via `select()`),
