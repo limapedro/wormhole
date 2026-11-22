@@ -81,6 +81,8 @@ typedef struct wh_output {
     char last_channels[16 * 1024];
 } wh_output_t;
 
+static void wh_auto_audio_task(void *param);
+
 static const char *wh_output_name(void *type_data)
 {
     (void)type_data;
@@ -386,6 +388,7 @@ static WH_THREAD_API wh_output_thread(WH_THREAD_ARG arg)
             time_t now = time(NULL);
             if (now != last_refresh) {
                 last_refresh = now;
+                obs_queue_task(OBS_TASK_UI, wh_auto_audio_task, ctx, false);
                 wh_send_channels(client, ctx, false);
             }
         }
@@ -447,6 +450,14 @@ static void wh_output_drain(wh_output_t *ctx)
     ctx->audio_tail = NULL;
     ctx->audio_count = 0;
     wh_mutex_unlock(&ctx->audio_mutex);
+}
+
+/* UI-thread wrapper: pick up audio sources added after startup. */
+static void wh_auto_audio_task(void *param)
+{
+    wh_output_t *ctx = param;
+    if (ctx && ctx->running)
+        wh_auto_create_audio_outputs();
 }
 
 static bool wh_output_start(void *data)
