@@ -240,7 +240,8 @@ static void *wh_audio_out_create(obs_data_t *settings, obs_source_t *source)
     ctx->listener = WH_INVALID_SOCKET;
     ctx->client = WH_INVALID_SOCKET;
     wh_mutex_init(&ctx->mutex);
-    wh_audio_out_start(ctx, settings);
+    if (obs_data_get_bool(settings, "connected"))
+        wh_audio_out_start(ctx, settings);
     return ctx;
 }
 
@@ -258,7 +259,11 @@ static void wh_audio_out_update(void *data, obs_data_t *settings)
 {
     wh_audio_out_t *ctx = data;
     wh_audio_out_stop(ctx);
-    wh_audio_out_start(ctx, settings);
+    if (obs_data_get_bool(settings, "connected"))
+        wh_audio_out_start(ctx, settings);
+    else
+        blog(LOG_INFO, "[wormhole] audio channel '%s' disconnected",
+             obs_data_get_string(settings, "target"));
 }
 
 static struct obs_source_info wh_audio_out_info = {
